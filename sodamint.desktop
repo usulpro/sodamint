@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Sodamint
+Comment=Keep the computer awake (systemd-inhibit tray toggle)
+Exec=sodamint
+Icon=sodamint-active
+Terminal=false
+Categories=Utility;System;
+Keywords=caffeine;awake;sleep;inhibit;insomnia;
+StartupNotify=false
