@@ -1,0 +1,4 @@
+interface:
+  display_name: "Epic Loop"
+  short_description: "Keep long-running engineering epics coherent across agent sessions"
+  default_prompt: "$epic-loop start a new epic for the following area of functionality:\n[describe the problem area or functionality you need to solve]"

@@ -4,3 +4,7 @@ __pycache__/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# epic-loop runtime state (machine/session-specific)
+.epic-loop/.runtime/
+.epic-loop/epics/*/.runtime/

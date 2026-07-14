@@ -1,0 +1,43 @@
+{
+  "env": {
+    "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "0"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "node '/projects/my-projects/sodamint/Sodamint/.claude/skills/epic-loop/scripts/hook.mjs' --root '/projects/my-projects/sodamint/Sodamint'",
+            "timeout": 30,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "node '/projects/my-projects/sodamint/Sodamint/.claude/skills/epic-loop/scripts/hook.mjs' --root '/projects/my-projects/sodamint/Sodamint'",
+            "timeout": 30,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "node '/projects/my-projects/sodamint/Sodamint/.claude/skills/epic-loop/scripts/hook.mjs' --root '/projects/my-projects/sodamint/Sodamint'",
+            "timeout": 30,
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}
