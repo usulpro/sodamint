@@ -27,26 +27,33 @@ a truthful "is anything keeping this machine awake?" light.
 ┌────────────────────────────────────────────┐
 │ Awake — 3 sources                     (hdr) │   status header, insensitive
 ├────────────────────────────────────────────┤
-│ ◆ epic-loop · sodamint · Phase 2 · pid 48213│   agent source (highlighted)
-│ ● nightly build · pid 51002                 │   plain external source
+│ Agents                                (hdr) │   group header, insensitive
+│ ◆ epic-loop · sodamint · Phase 2 · pid 48213│   agent source (grouped first)
+│ ◆ nightly-build · sodamint · pid 49780      │
+├────────────────────────────────────────────┤
+│ Other                                 (hdr) │   group header, insensitive
 │ ★ Sodamint keep-awake (this) · pid 5591     │   our own manual lock
+│ ● GNOME Shell · pid 2210                    │   plain external source
 ├────────────────────────────────────────────┤
 │ ☑ Keep awake (manual)                       │   manual toggle (checkbox)
 ├────────────────────────────────────────────┤
-│ Quit                                        │
+│ Disable and quit                            │   dynamic label (toggle is on)
 └────────────────────────────────────────────┘
 ```
 
 - **Status header** — `Awake — N sources` or `Idle` when empty. Insensitive
   (label only), same role as today's `Status: on/off`.
+- **Grouping (D20)** — agent sources (`who == sodamint-agent`) are listed
+  **first**, under an insensitive `Agents` header; all other rows (our own lock
+  and arbitrary system inhibitors) follow under an `Other` header. A header is
+  shown only when its group is non-empty; with no sources at all, neither header
+  nor rows appear (just `Idle`).
 - **One row per inhibitor** — a marker glyph, the `why` string (falling back to
-  `who` when empty), and the pid. An age (`2h14m`) is appended when it can be
-  derived from `/proc/<pid>` start-time (open question in `decision-log.md`).
-  Rows are **read-only labels** — clicking a source does nothing; there is no
-  per-source release (D14). The row exists to answer "who is holding the machine
-  awake." Row types are distinguished by glyph:
+  `who` when empty), and the pid. **No age column** (D19). Rows are **read-only
+  labels** — clicking a source does nothing; there is no per-source release
+  (D14). The row exists to answer "who is holding the machine awake." Glyphs:
   - `◆` **agent source** — `who == sodamint-agent` (see
-    [`agent-integration.md`](agent-integration.md)); the row Sodamint highlights.
+    [`agent-integration.md`](agent-integration.md)); grouped first.
   - `★` **our own manual lock** — pid matches `self.proc`.
   - `●` **any other inhibitor** — arbitrary system/app source.
 - **Keep awake (manual)** — the classic checkbox, the **only control** in the
@@ -54,7 +61,7 @@ a truthful "is anything keeping this machine awake?" light.
   (today's `start()`); unchecking terminates it (`stop()`). This is unchanged
   from today and is how the user releases the one lock Sodamint owns. The
   feedback-loop guard (`handler_block_by_func`) is kept.
-- **Quit** — see below.
+- **Quit item** — see below; its label is dynamic.
 
 ## No release of external sources (D14)
 
@@ -80,9 +87,9 @@ inhibitor list.
 logind emits no "inhibitor added/removed" signal, so `_refresh()` runs on:
 (a) a `GLib.timeout` poll of `ListInhibitors()` every few seconds, and (b) when
 the menu is popped up (so a user opening the tray sees fresh data immediately).
-Age labels advance at the poll cadence — no separate per-second timer.
+Rows carry no age (D19), so the poll cadence alone is enough — no per-second timer.
 
-## Quit behavior
+## Quit behavior (D21)
 
 Quitting Sodamint stops **only our own** `systemd-inhibit` subprocess. Every
 external inhibitor is a separate process that keeps running and keeps holding
@@ -90,11 +97,18 @@ its own lock — so **quitting does not put the machine to sleep** if agents are
 still working. This is strictly safer than the old lease design, where quit
 dropped the single shared lock.
 
-- If our manual toggle is **off**, quit immediately (nothing of ours to drop).
-- If our manual toggle is **on**, a light confirm is optional (we are about to
-  drop the one lock we own): `"The manual keep-awake will be released on quit.
-  Other sources are unaffected. Quit?"` — leaning toward showing it only in that
-  case.
+There is **no confirmation dialog**. Instead the Quit menu item's **label is
+dynamic**, so it tells the truth about what quitting will do:
+
+- Manual toggle **off** → label `Quit` — nothing of ours to drop; quit
+  immediately.
+- Manual toggle **on** → label `Disable and quit` — quitting will release our
+  own keep-awake lock (our subprocess is terminated on exit). External sources
+  are unaffected either way.
+
+`_refresh()` updates this label from `is_on()` alongside the icon and checkbox
+(single repaint point). Quit action itself is unchanged: `stop()` then
+`Gtk.main_quit()`.
 
 ## Non-goals for the UI
 

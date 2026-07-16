@@ -44,3 +44,19 @@
   `risk-register.md` (kill risks removed, marker-collision + toggle-regression
   added), new `docs/agent-integration.md`.
 - Still shaping; implementation not started; no driver bound.
+
+## 2026-07-17 - Open questions resolved: D19–D21 (shaping)
+
+- User answered the three remaining open questions, now locked as decisions:
+  - **D19 — no age column.** Rows show why/who/pid only.
+  - **D20 — agent sources grouped first**, under `Agents`/`Other` headers, `◆`
+    glyph retained.
+  - **D21 — dynamic Quit label, no dialog.** `Quit` when the manual toggle is
+    off, `Disable and quit` when on; label updated in `_refresh()`.
+- Artifacts touched: `decision-log.md` (D19–D21 added, Open Questions now empty),
+  `docs/tray-ux.md` (grouped layout, no age, dynamic quit section),
+  `docs/data-source.md` (age section → "no age"), `docs/problem-framing.md`,
+  `tracker.md` (Phase 2 grouping/no-age acceptance, Phase 3 dynamic-quit
+  acceptance), `state-of-epic.md`.
+- Design is now fully settled — no open questions. Ready for Phase 2
+  implementation. Still no driver bound.

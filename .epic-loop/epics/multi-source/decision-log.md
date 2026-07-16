@@ -82,21 +82,25 @@ central. New decisions **D10–D17** define the reshaped architecture.
   documentation an agent can follow **today**; the highlighting is the only
   code Sodamint adds for it.
 
+- **D19 — No age/"since when" column.** login1 exposes no inhibitor start time
+  and deriving it from `/proc/<pid>` is not worth it. Rows show `why` / `who` /
+  `pid` only. (Resolves the age open question: no.)
+- **D20 — Agent sources are grouped first.** In the menu, rows whose
+  `who == sodamint-agent` are listed **before** all other inhibitor rows, under
+  an "Agents" separator/header; everything else (our own manual lock and other
+  system inhibitors) follows. The `◆` glyph still marks agent rows; grouping is
+  the primary visual distinction. (Resolves the highlight-style open question.)
+- **D21 — Quit is a dynamic menu label, not a dialog.** The Quit item reads
+  `Quit` when our manual lock is off and `Disable and quit` when it is on — so
+  the user sees, in the label itself, that quitting will drop our own lock.
+  No confirmation dialog. External sources are unaffected either way.
+  (Resolves the quit-confirm open question: dynamic label, no dialog.)
+
 ## Open Questions
 
-- **Age/"since when" per source.** login1 exposes no inhibitor start time. If we
-  want an age column we must read `/proc/<pid>` start-time and compute it (no new
-  dep). Leaning: show age when `/proc` is readable, omit otherwise — nice-to-have,
-  not core.
-- **Agent highlight style.** How to mark `who=sodamint-agent` rows — a distinct
-  bullet/glyph, a `(agent)` tag, or grouping agents under their own header?
-  Leaning: distinct glyph + keep flat, decide during Phase 2 rendering.
-- **Quit confirm.** When the manual toggle is on, quitting drops our own lock —
-  warn first, or just quit? External sources are unaffected either way. Leaning:
-  a light confirm only when the toggle is on.
-
-(Resolved by this round: the old "SIGTERM vs SIGKILL" and "confirm scope for
-external drop" questions are moot — D14 makes external sources read-only.)
+- None open. (The earlier age / highlight-style / quit-confirm questions are
+  resolved by D19–D21; the external-drop questions — SIGTERM-vs-SIGKILL, confirm
+  scope — are moot under D14.)
 
 ## Superseded Decisions (old lease architecture, pre-2026-07-17 reset)
 

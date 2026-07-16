@@ -53,10 +53,10 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
   - Surface: `sodamint.py` — new helper (e.g. `list_inhibitors()`); `Gio` system-bus call; filter + fallback.
   - Acceptance: Returns the same idle/sleep holders as `systemd-inhibit --list`; returns `[]` (not an exception) when there are none or the bus is unreachable; no new dependency added.
   - Docs: `docs/data-source.md`.
-- [ ] Kind: implementation | Status: todo | Drive the icon/status and a dynamic, read-only per-source menu from the inhibitor list; classify each row (agent `◆` / our own `★` / other `●`) and highlight agent sources; poll on a `GLib.timeout` + on menu popup; rebuild the menu for both backends.
-  - Outcome: The tray shows one read-only row per idle/sleep inhibitor (why/who/pid, age if cheap), agent sources (`who==sodamint-agent`) visually highlighted, and the icon is active iff ≥1 exists.
-  - Surface: `sodamint.py` — `_refresh()` derives from the inhibitor list; row classification per `docs/data-source.md`; `_build_menu()`/rebuild section; `GLib.timeout_add_seconds`; AppIndicator `set_menu()` + StatusIcon `self._menu`.
-  - Acceptance: Starting/stopping an external `systemd-inhibit` makes a row appear/disappear within one poll and flips the icon; a `--who=sodamint-agent` inhibitor renders as a highlighted (`◆`) row; our manual lock renders as `★`; rows are inert on click; renders on both AppIndicator and StatusIcon.
+- [ ] Kind: implementation | Status: todo | Drive the icon/status and a dynamic, read-only per-source menu from the inhibitor list; classify each row (agent `◆` / our own `★` / other `●`), group agents first under an `Agents`/`Other` header (D20), no age column (D19); poll on a `GLib.timeout` + on menu popup; rebuild the menu for both backends.
+  - Outcome: The tray shows read-only rows (why/who/pid, no age) with agent sources (`who==sodamint-agent`) grouped first and highlighted, and the icon is active iff ≥1 exists.
+  - Surface: `sodamint.py` — `_refresh()` derives from the inhibitor list; row classification + grouping per `docs/data-source.md`/`docs/tray-ux.md`; `_build_menu()`/rebuild section; `GLib.timeout_add_seconds`; AppIndicator `set_menu()` + StatusIcon `self._menu`.
+  - Acceptance: Starting/stopping an external `systemd-inhibit` makes a row appear/disappear within one poll and flips the icon; `--who=sodamint-agent` inhibitors render as highlighted (`◆`) rows listed before all others under an `Agents` header; our manual lock renders as `★` under `Other`; group headers appear only when non-empty; no age is shown; rows are inert on click; renders on both AppIndicator and StatusIcon.
   - Docs: `docs/tray-ux.md`, `docs/data-source.md`, `docs/agent-integration.md`.
 - [ ] Kind: verification | Status: todo | Drive the dashboard with real external + agent inhibitors on both backends and confirm the render/icon/highlight contract.
   - Outcome: Verified that the list mirrors logind, the icon tracks the count, and agent rows are highlighted.
@@ -68,10 +68,10 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
 
 - Phase status: todo
 
-- [ ] Kind: implementation | Status: todo | Reconcile the manual toggle with the new model: it holds our own inhibitor (unchanged `start`/`stop`/`is_on`), shows as its own `★` row, and quit drops only our lock (light confirm only when the toggle is on). No behavior change to the existing lock/unlock path.
-  - Outcome: The classic one-click keep-awake still works exactly as today and is consistent with the dashboard; quitting never silently sleeps a machine held by others.
-  - Surface: `sodamint.py` — `_on_toggle_item`/`start`/`stop`/`is_on`/`quit`; identify our row by `self.proc.pid`; `child_watch`/`_on_child_exit` preserved.
-  - Acceptance: Toggle on → machine held + our `★` row + active icon; toggle off → lock released, row gone; external death of our subprocess still resets state (existing `_on_child_exit`); quit with toggle on drops only our lock and leaves external rows (verified via `--list` after quit); quit with toggle off exits immediately.
+- [ ] Kind: implementation | Status: todo | Reconcile the manual toggle with the new model: it holds our own inhibitor (unchanged `start`/`stop`/`is_on`), shows as its own `★` row, and the Quit item's label is dynamic — `Quit` when off, `Disable and quit` when on (D21), updated in `_refresh()`; no confirmation dialog. No behavior change to the existing lock/unlock path.
+  - Outcome: The classic one-click keep-awake still works exactly as today and is consistent with the dashboard; quitting never silently sleeps a machine held by others, and the Quit label states whether it will drop our lock.
+  - Surface: `sodamint.py` — `_on_toggle_item`/`start`/`stop`/`is_on`/`quit`; Quit `Gtk.MenuItem` label set from `is_on()` in `_refresh()`; identify our row by `self.proc.pid`; `child_watch`/`_on_child_exit` preserved.
+  - Acceptance: Toggle on → machine held + our `★` row + active icon + Quit label reads `Disable and quit`; toggle off → lock released, row gone, Quit label reads `Quit`; external death of our subprocess still resets state and the label (existing `_on_child_exit` → `_refresh()`); quitting drops only our lock and leaves external rows (verified via `--list` after quit).
   - Docs: `docs/tray-ux.md`, `docs/data-source.md`.
 - [ ] Kind: verification | Status: todo | Confirm the manual toggle is a strict regression-safe superset of today's behavior, plus quit isolation, on both backends.
   - Outcome: Verified that existing manual keep-awake did not regress and quit never drops a lock we do not own.

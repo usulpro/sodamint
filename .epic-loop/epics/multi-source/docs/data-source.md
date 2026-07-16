@@ -53,13 +53,10 @@ logind emits no add/removed signal for inhibitors, so poll `ListInhibitors()` on
 a `GLib.timeout` (a few seconds) and on menu popup. Cheap: a single D-Bus call
 returning a small array.
 
-### Age (open question)
+### No age column (D19)
 
-logind does not expose an inhibitor's start time. If an age column is wanted,
-derive it from the holder process: read `/proc/<pid>/stat` field 22 (starttime,
-in clock ticks since boot), combine with `/proc/uptime` and `SC_CLK_TCK`. Show
-the age when readable, omit otherwise. No new dependency. Marked as a
-nice-to-have in `decision-log.md`.
+logind exposes no inhibitor start time, and deriving one from `/proc/<pid>` is
+not worth it. Rows show `why` / `who` / `pid` only — no age/"since when".
 
 ## Classifying a row
 

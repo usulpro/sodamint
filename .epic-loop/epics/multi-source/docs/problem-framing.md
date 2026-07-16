@@ -59,8 +59,8 @@ crash cleanup — remain logind's job. Sodamint never re-implements them.
   ListInhibitors()` over D-Bus (structured, no parsing, no new dependency),
   filtered to idle/sleep holders. See [`data-source.md`](data-source.md).
 - **Dynamic tray menu** listing each active idle/sleep inhibitor with who / why
-  / pid (and age if cheaply derivable from `/proc`), read-only, with agent
-  sources highlighted. Both tray backends. See [`tray-ux.md`](tray-ux.md).
+  / pid (no age), read-only, with agent sources grouped first and highlighted.
+  Both tray backends. See [`tray-ux.md`](tray-ux.md).
 - **Icon/status driven by the inhibitor count**, not just our own toggle.
 - **Keep the manual toggle**, mechanism unchanged; it is the only tray control
   and the only lock Sodamint releases (its own). See [`data-source.md`](data-source.md).
@@ -99,5 +99,5 @@ crash cleanup — remain logind's job. Sodamint never re-implements them.
 
 ## Open Questions
 
-Tracked in `decision-log.md` (age column source, agent-highlight style, quit
-confirm).
+None open — all resolved in `decision-log.md` (D19 no age, D20 agents grouped
+first, D21 dynamic quit label).

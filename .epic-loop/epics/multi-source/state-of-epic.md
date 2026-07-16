@@ -16,8 +16,10 @@ Active task: TBD (next: Phase 2 — read & render inhibitors)
   UI over logind's inhibitor list**: show every idle/sleep source (who/why/pid)
   and let the user manually drop one. No lease store, CLI, in-app refcount, or
   watchdog.
-- Decisions reshaped: **D10–D18** define the new architecture and **supersede
+- Decisions reshaped: **D10–D21** define the new architecture and **supersede
   D1–D8**; **D9** (do not port to macOS) stands and is more central now.
+  D19–D21 lock the last open questions: no age column; agents grouped first;
+  dynamic Quit label (`Quit` / `Disable and quit`) instead of a dialog.
 - **Refinement 2026-07-17 (same day):** external sources are now **read-only**
   — Sodamint never drops another process's lock (D14 revised; the SIGTERM-kill
   path is dropped). The only tray control is the existing manual toggle, which
@@ -36,15 +38,14 @@ Active task: TBD (next: Phase 2 — read & render inhibitors)
 
 ## Blockers
 
-- None. Three open questions remain in `decision-log.md` (age column source;
-  agent-highlight style; quit confirm), all with leaning answers — decide during
-  Phase 2/3. The old external-drop questions (SIGTERM-vs-SIGKILL, confirm scope)
-  are resolved/moot by D14.
+- None. **No open questions remain** — D19–D21 resolved the last three (age,
+  highlight style, quit), and the external-drop questions are moot under D14.
+  The design is fully settled and ready to implement.
 
 ## Next Action
 
-- Await user confirmation on the reshaped scope, then move to implementation
-  starting at Phase 2 (read & render inhibitors from logind).
+- Scope and all decisions are settled; ready to move to implementation starting
+  at Phase 2 (read & render inhibitors from logind).
 - Implementation is NOT started; no session is bound as driver yet. Note: the
   epic-loop Stop-hook loop is not installed in `.claude/settings.json` yet
   (`doctor` = setup-required); install hooks before starting autonomous
