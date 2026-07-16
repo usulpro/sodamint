@@ -37,7 +37,7 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
   - Outcome: The epic has enough structure to decompose implementation.
   - Surface: `docs/`, `decision-log.md`, `risk-register.md`, `state-of-epic.md`.
   - Acceptance: A future session understands why this epic exists and what to build next.
-  - Docs: `docs/problem-framing.md`, `docs/tray-ux.md`, `docs/data-source.md`, `docs/macos-feasibility.md`.
+  - Docs: `docs/problem-framing.md`, `docs/tray-ux.md`, `docs/data-source.md`, `docs/agent-integration.md`, `docs/macos-feasibility.md`.
 - [x] Kind: architecture-reset | Status: done | Reshape from a lease/refcount/watchdog service to a thin tray UI over logind's inhibitor list.
   - Outcome: The epic no longer rebuilds what `systemd-inhibit`/logind already does; scope is visibility + manual drop only.
   - Surface: `decision-log.md` (D10–D17 supersede D1–D8), `docs/problem-framing.md`, `docs/tray-ux.md`, new `docs/data-source.md`; `docs/cli-reference.md` + `docs/watch-mode.md` marked superseded.
@@ -53,51 +53,46 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
   - Surface: `sodamint.py` — new helper (e.g. `list_inhibitors()`); `Gio` system-bus call; filter + fallback.
   - Acceptance: Returns the same idle/sleep holders as `systemd-inhibit --list`; returns `[]` (not an exception) when there are none or the bus is unreachable; no new dependency added.
   - Docs: `docs/data-source.md`.
-- [ ] Kind: implementation | Status: todo | Drive the icon/status and a dynamic per-source menu from the inhibitor list; poll on a `GLib.timeout` + on menu popup; rebuild the menu for both backends.
-  - Outcome: The tray shows one row per idle/sleep inhibitor (why/who/pid, age if cheap) and the icon is active iff ≥1 exists.
-  - Surface: `sodamint.py` — `_refresh()` derives from the inhibitor list; `_build_menu()`/rebuild section; `GLib.timeout_add_seconds`; AppIndicator `set_menu()` + StatusIcon `self._menu`.
-  - Acceptance: Starting/stopping an external `systemd-inhibit` makes a row appear/disappear within one poll and flips the icon; manual toggle appears as its own row; renders on both AppIndicator and StatusIcon.
-  - Docs: `docs/tray-ux.md`, `docs/data-source.md`.
-- [ ] Kind: verification | Status: todo | Drive the dashboard with real external inhibitors on both backends and confirm the render/icon contract.
-  - Outcome: Verified that the list mirrors logind and the icon tracks the count.
-  - Surface: run the app; hold locks via `systemd-inhibit --what=idle:sleep --why=test -- sleep 600` (one or more); observe rows, icon, header count; compare to `systemd-inhibit --list`.
-  - Acceptance: Rows match `--list` (filtered); icon active with ≥1, inactive at 0; both backends render; cleanup kills the test inhibitors.
-  - Docs: `docs/tray-ux.md`.
+- [ ] Kind: implementation | Status: todo | Drive the icon/status and a dynamic, read-only per-source menu from the inhibitor list; classify each row (agent `◆` / our own `★` / other `●`) and highlight agent sources; poll on a `GLib.timeout` + on menu popup; rebuild the menu for both backends.
+  - Outcome: The tray shows one read-only row per idle/sleep inhibitor (why/who/pid, age if cheap), agent sources (`who==sodamint-agent`) visually highlighted, and the icon is active iff ≥1 exists.
+  - Surface: `sodamint.py` — `_refresh()` derives from the inhibitor list; row classification per `docs/data-source.md`; `_build_menu()`/rebuild section; `GLib.timeout_add_seconds`; AppIndicator `set_menu()` + StatusIcon `self._menu`.
+  - Acceptance: Starting/stopping an external `systemd-inhibit` makes a row appear/disappear within one poll and flips the icon; a `--who=sodamint-agent` inhibitor renders as a highlighted (`◆`) row; our manual lock renders as `★`; rows are inert on click; renders on both AppIndicator and StatusIcon.
+  - Docs: `docs/tray-ux.md`, `docs/data-source.md`, `docs/agent-integration.md`.
+- [ ] Kind: verification | Status: todo | Drive the dashboard with real external + agent inhibitors on both backends and confirm the render/icon/highlight contract.
+  - Outcome: Verified that the list mirrors logind, the icon tracks the count, and agent rows are highlighted.
+  - Surface: run the app; hold locks via `systemd-inhibit --what=idle:sleep --why=test -- sleep 600` and `systemd-inhibit --what=idle:sleep --who=sodamint-agent --why="epic-loop · test" -- sleep 600`; observe rows, glyphs, icon, header count; compare to `systemd-inhibit --list`.
+  - Acceptance: Rows match `--list` (filtered); the agent lock shows the highlighted glyph; icon active with ≥1, inactive at 0; both backends render; cleanup kills the test inhibitors.
+  - Docs: `docs/tray-ux.md`, `docs/agent-integration.md`.
 
-### Phase 3: Manual Drop & Manual Toggle
+### Phase 3: Manual Toggle & Quit
 
 - Phase status: todo
 
-- [ ] Kind: implementation | Status: todo | Per-source "Release this source": terminate our own subprocess for our lock, else `SIGTERM` the holder pid with a confirm dialog; handle `EPERM`/`ESRCH` gracefully and re-poll.
-  - Outcome: The user can drop any idle/sleep source from the tray, including a hung agent, without a terminal.
-  - Surface: `sodamint.py` — submenu `Release` handler; branch on `pid == self.proc.pid`; `os.kill`; confirm + error dialogs; refresh after.
-  - Acceptance: Dropping an external test inhibitor removes its row within one poll; a non-permitted pid shows an error instead of crashing; our own lock is released cleanly without a kill.
+- [ ] Kind: implementation | Status: todo | Reconcile the manual toggle with the new model: it holds our own inhibitor (unchanged `start`/`stop`/`is_on`), shows as its own `★` row, and quit drops only our lock (light confirm only when the toggle is on). No behavior change to the existing lock/unlock path.
+  - Outcome: The classic one-click keep-awake still works exactly as today and is consistent with the dashboard; quitting never silently sleeps a machine held by others.
+  - Surface: `sodamint.py` — `_on_toggle_item`/`start`/`stop`/`is_on`/`quit`; identify our row by `self.proc.pid`; `child_watch`/`_on_child_exit` preserved.
+  - Acceptance: Toggle on → machine held + our `★` row + active icon; toggle off → lock released, row gone; external death of our subprocess still resets state (existing `_on_child_exit`); quit with toggle on drops only our lock and leaves external rows (verified via `--list` after quit); quit with toggle off exits immediately.
   - Docs: `docs/tray-ux.md`, `docs/data-source.md`.
-- [ ] Kind: implementation | Status: todo | Reconcile the manual toggle with the new model: it holds our own inhibitor (unchanged `start`/`stop`), shows as its own row, and quit drops only our lock (light confirm only when the toggle is on).
-  - Outcome: The classic one-click keep-awake still works and is consistent with the dashboard; quitting never silently sleeps a machine held by others.
-  - Surface: `sodamint.py` — `_on_toggle_item`/`start`/`stop`/`quit`; identify our row by `self.proc.pid`.
-  - Acceptance: Toggle on → our row + active icon; toggle off → row gone; quit with toggle on drops only our lock and leaves external rows (verified via `--list` after quit); quit with toggle off exits immediately.
+- [ ] Kind: verification | Status: todo | Confirm the manual toggle is a strict regression-safe superset of today's behavior, plus quit isolation, on both backends.
+  - Outcome: Verified that existing manual keep-awake did not regress and quit never drops a lock we do not own.
+  - Surface: run the app; toggle on/off repeatedly and confirm the inhibitor via `systemd-inhibit --list`; kill our subprocess externally and confirm the UI recovers; with an external agent lock present, quit and re-check `--list`.
+  - Acceptance: Lock appears/disappears with the toggle exactly as before the epic; external subprocess death resets the checkbox/icon; after quit-with-external-source-present the external inhibitor is still listed.
   - Docs: `docs/tray-ux.md`.
-- [ ] Kind: verification | Status: todo | Exercise drop + toggle + quit against the full behavior set on both backends.
-  - Outcome: Verified control surface (drop own/external, confirm, permission failure, quit isolation).
-  - Surface: run the app; external `systemd-inhibit` holders + manual toggle; drop each; attempt a non-permitted drop; quit and re-check `systemd-inhibit --list`.
-  - Acceptance: Every case behaves per `tray-ux.md`/`data-source.md`; no crash on `EPERM`/`ESRCH`; external sources survive our quit.
-  - Docs: `docs/tray-ux.md`, `docs/data-source.md`.
 
 ### Phase 4: Docs & End-to-End
 
 - Phase status: todo
 
-- [ ] Kind: implementation | Status: todo | Update `CLAUDE.md` to the reshaped model (dashboard over logind; `self.proc` is source of truth only for our own lock — D17) and document the recommended agent integration (`systemd-inhibit --why="…" -- <cmd>`); refresh `install.sh`/README if needed.
-  - Outcome: Repo docs match the shipped behavior; agents have a copy-paste keep-awake pattern that shows up in the dashboard and self-releases.
-  - Surface: `CLAUDE.md`, optionally README/`install.sh`.
-  - Acceptance: `CLAUDE.md` no longer claims `self.proc` is the *only* source of truth and describes the dashboard; the documented agent wrapper appears as a row when run.
-  - Docs: `docs/problem-framing.md`, `docs/data-source.md`.
-- [ ] Kind: verification | Status: todo | Whole-feature run mimicking the real workload: two parallel `systemd-inhibit -- <cmd>` "agents" plus the manual toggle; drop one; kill one; quit.
+- [ ] Kind: implementation | Status: todo | Update `CLAUDE.md` to the reshaped model (dashboard over logind; `self.proc` is source of truth only for our own lock — D17) and point agents at the integration contract; surface the contract in repo-level docs (e.g. an `AGENTS.md` or README section) copied from `docs/agent-integration.md`; refresh `install.sh` if needed.
+  - Outcome: Repo docs match the shipped behavior; agents have a copy-paste, highlighted keep-awake pattern in project documentation.
+  - Surface: `CLAUDE.md`, repo agent doc (new `AGENTS.md` or README section), optionally `install.sh`.
+  - Acceptance: `CLAUDE.md` no longer claims `self.proc` is the *only* source of truth and describes the dashboard; the `--who=sodamint-agent` contract is documented at repo level and, when followed, produces a highlighted row.
+  - Docs: `docs/problem-framing.md`, `docs/data-source.md`, `docs/agent-integration.md`.
+- [ ] Kind: verification | Status: todo | Whole-feature run mimicking the real workload: two parallel agent inhibitors (`--who=sodamint-agent`) plus the manual toggle; toggle off; externally kill one agent; quit.
   - Outcome: End-to-end proof against the reshaped desired outcome.
-  - Surface: live app + two `systemd-inhibit --why=… -- sleep 600` + manual toggle + `systemd-inhibit --list`.
-  - Acceptance: All three show as rows; icon active; manual "Release" drops one; externally killing an agent removes its row within a poll (logind auto-cleanup); quitting leaves the surviving external agent holding the machine awake.
-  - Docs: `docs/problem-framing.md`, `docs/data-source.md`.
+  - Surface: live app + two `systemd-inhibit --what=idle:sleep --who=sodamint-agent --why=… -- sleep 600` + manual toggle + `systemd-inhibit --list`.
+  - Acceptance: All three show as rows (two highlighted `◆`, one `★`); icon active; toggling the manual lock off drops only our row; externally killing an agent removes its row within a poll (logind auto-cleanup, no code of ours); quitting leaves the surviving external agents holding the machine awake.
+  - Docs: `docs/problem-framing.md`, `docs/agent-integration.md`.
 
 ## Retired Roadmap (pre-2026-07-17 reset — not being built)
 

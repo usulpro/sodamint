@@ -1,9 +1,11 @@
 # Tray UX Decision
 
 > **Reshaped 2026-07-17.** Rows come from logind's live inhibitor list, not from
-> a lease store; "Release" signals the holder PID, not a file delete; quit only
-> drops our own lock. See `decision-log.md` (D10–D17) and
-> [`data-source.md`](data-source.md).
+> a lease store. External sources are **read-only** (Sodamint never drops another
+> process's lock — D14); the only control is our own manual toggle. Agent-set
+> inhibitors (`who=sodamint-agent`) are visually highlighted. See
+> `decision-log.md` (D10–D18), [`data-source.md`](data-source.md), and
+> [`agent-integration.md`](agent-integration.md).
 
 ## Goal
 
@@ -25,11 +27,11 @@ a truthful "is anything keeping this machine awake?" light.
 ┌────────────────────────────────────────────┐
 │ Awake — 3 sources                     (hdr) │   status header, insensitive
 ├────────────────────────────────────────────┤
-│ ● epic-loop multi-source · pid 48213   ▸    │   one row per inhibitor → submenu
-│ ● nightly build · pid 51002            ▸    │
-│ ● Sodamint keep-awake (this) · pid 5591 ▸   │   our own manual lock, flagged
+│ ◆ epic-loop · sodamint · Phase 2 · pid 48213│   agent source (highlighted)
+│ ● nightly build · pid 51002                 │   plain external source
+│ ★ Sodamint keep-awake (this) · pid 5591     │   our own manual lock
 ├────────────────────────────────────────────┤
-│ ☐ Keep awake (manual)                       │   manual toggle (checkbox)
+│ ☑ Keep awake (manual)                       │   manual toggle (checkbox)
 ├────────────────────────────────────────────┤
 │ Quit                                        │
 └────────────────────────────────────────────┘
@@ -37,38 +39,31 @@ a truthful "is anything keeping this machine awake?" light.
 
 - **Status header** — `Awake — N sources` or `Idle` when empty. Insensitive
   (label only), same role as today's `Status: on/off`.
-- **One row per inhibitor** — a bullet, the `why` string (falling back to `who`
-  when empty), and the pid. An age (`2h14m`) is appended when it can be derived
-  from `/proc/<pid>` start-time (open question in `decision-log.md`). Each row
-  opens a small submenu:
-  ```
-  ● epic-loop multi-source · pid 48213 ▸
-        who: epic-loop · what: idle:sleep · mode: block · uid 1000
-        ─────────────
-        Release this source
-  ```
-  The submenu shows the raw logind fields (who / what / mode / uid).
-  `Release this source` drops that inhibitor (see below).
-- **Keep awake (manual)** — the classic checkbox. Checking it starts our own
-  `systemd-inhibit … sleep infinity` subprocess (today's `start()`); unchecking
-  terminates it (`stop()`). Preserves the current muscle-memory. The
+- **One row per inhibitor** — a marker glyph, the `why` string (falling back to
+  `who` when empty), and the pid. An age (`2h14m`) is appended when it can be
+  derived from `/proc/<pid>` start-time (open question in `decision-log.md`).
+  Rows are **read-only labels** — clicking a source does nothing; there is no
+  per-source release (D14). The row exists to answer "who is holding the machine
+  awake." Row types are distinguished by glyph:
+  - `◆` **agent source** — `who == sodamint-agent` (see
+    [`agent-integration.md`](agent-integration.md)); the row Sodamint highlights.
+  - `★` **our own manual lock** — pid matches `self.proc`.
+  - `●` **any other inhibitor** — arbitrary system/app source.
+- **Keep awake (manual)** — the classic checkbox, the **only control** in the
+  menu. Checking it starts our own `systemd-inhibit … sleep infinity` subprocess
+  (today's `start()`); unchecking terminates it (`stop()`). This is unchanged
+  from today and is how the user releases the one lock Sodamint owns. The
   feedback-loop guard (`handler_block_by_func`) is kept.
 - **Quit** — see below.
 
-## Release semantics (the key change)
+## No release of external sources (D14)
 
 logind has **no API to release another process's inhibitor** — the lock is an fd
-owned by the holder. So "Release this source" depends on whose lock it is:
-
-- **Our own manual lock** (pid matches `self.proc`): terminate the subprocess
-  cleanly, exactly like unchecking the toggle. No confirm needed.
-- **Any external inhibitor**: send `SIGTERM` to its pid (D14). This kills a real
-  process (e.g. an agent), so it **confirms first**:
-  `"Release "epic-loop multi-source" (pid 48213)? This sends SIGTERM to that
-  process."` If the kill fails (`EPERM` for another user's or a privileged pid,
-  `ESRCH` if already gone), surface it in a dialog and refresh; never crash.
-
-The submenu row is the only place a source is dropped from the tray.
+owned by the holder — and killing the holder was rejected as too blunt. So the
+tray offers **no drop action for external sources**; they are display-only. The
+only lock the tray releases is our own manual one, via the checkbox above (or by
+quitting). To stop an external source the user acts on that process directly,
+outside Sodamint.
 
 ## Both tray backends
 
@@ -103,8 +98,9 @@ dropped the single shared lock.
 
 ## Non-goals for the UI
 
-- No per-source icons or colors beyond active/inactive.
-- No editing of an inhibitor from the tray (only release).
-- No history of released sources in the menu (that is log territory, not tray).
+- No control over external sources at all — no release, no kill, no edit. They
+  are read-only labels (D14).
+- No per-source styling beyond the three row-type glyphs (`◆`/`★`/`●`).
+- No history of ended sources in the menu (that is log territory, not tray).
 - No re-creating logind's bookkeeping — the tray reflects logind, it does not
   cache or reconcile state of its own.

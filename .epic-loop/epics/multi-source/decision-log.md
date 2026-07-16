@@ -46,13 +46,15 @@ central. New decisions **D10–D17** define the reshaped architecture.
   Not just when Sodamint's own toggle is on. This is the core "why is my machine
   awake?" answer. Sodamint's own manual lock is simply one entry among the
   others.
-- **D14 — Manual drop of an external source = signal its holder PID.** logind
-  exposes no call to release another process's inhibitor — the lock is an fd
-  owned by that process. "Release this source" therefore sends `SIGTERM` to the
-  holding PID (with a confirm dialog, since it kills a real process). Dropping
-  *our own* manual lock stays clean: terminate our `systemd-inhibit` subprocess
-  as today. Killing another user's or a privileged PID may fail with `EPERM`;
-  handle it gracefully and surface the error.
+- **D14 — External sources are read-only; Sodamint never drops another
+  process's lock.** logind exposes no call to release another process's
+  inhibitor (the lock is an fd owned by that process), and killing the holder
+  was rejected as too blunt — it would terminate a real agent. External
+  inhibitors are therefore **display-only**: the tray shows who/why/pid but
+  offers no drop action for them. The **only** lock Sodamint releases is its
+  own manual toggle, terminated cleanly as today (D15). To stop an external
+  source the user acts on that process directly, outside Sodamint. This
+  supersedes the earlier "SIGTERM the holder" idea.
 - **D15 — The manual toggle stays, unchanged in mechanism.** It still holds one
   `systemd-inhibit --what=idle:sleep … sleep infinity` subprocess (`self.proc`).
   It now also appears as a row in the dashboard, identified by our own PID. Its
@@ -68,6 +70,17 @@ central. New decisions **D10–D17** define the reshaped architecture.
   "our subprocess is alive", but the tray now also reflects inhibitors Sodamint
   does not own. `_refresh()` remains the single UI-repaint point. `CLAUDE.md`
   must be updated to say so.
+- **D18 — Agents self-set their own inhibitor and self-identify for
+  highlighting.** Agents already run bash, so they keep the machine awake by
+  calling `systemd-inhibit` themselves — Sodamint does not acquire on their
+  behalf (still no CLI). To let the dashboard visually distinguish agent sources
+  from arbitrary system inhibitors, the contract fixes a marker,
+  `--who=sodamint-agent`, and a recommended `--why` label format. Sodamint
+  highlights any row whose `who` matches the marker and uses `why` as its label.
+  The full wrapper and message-format contract lives in
+  [`docs/agent-integration.md`](docs/agent-integration.md). This is
+  documentation an agent can follow **today**; the highlighting is the only
+  code Sodamint adds for it.
 
 ## Open Questions
 
@@ -75,12 +88,15 @@ central. New decisions **D10–D17** define the reshaped architecture.
   want an age column we must read `/proc/<pid>` start-time and compute it (no new
   dep). Leaning: show age when `/proc` is readable, omit otherwise — nice-to-have,
   not core.
-- **SIGTERM vs escalate to SIGKILL on manual drop.** If a held process ignores
-  SIGTERM, do we offer a follow-up SIGKILL? Leaning: SIGTERM only for v1; the
-  list will simply still show it, and the user can retry.
-- **Confirm dialog scope.** Confirm on every external drop (it kills a process)
-  but drop our own manual lock without a prompt? Leaning: yes — our lock is not a
-  process the user cares about losing.
+- **Agent highlight style.** How to mark `who=sodamint-agent` rows — a distinct
+  bullet/glyph, a `(agent)` tag, or grouping agents under their own header?
+  Leaning: distinct glyph + keep flat, decide during Phase 2 rendering.
+- **Quit confirm.** When the manual toggle is on, quitting drops our own lock —
+  warn first, or just quit? External sources are unaffected either way. Leaning:
+  a light confirm only when the toggle is on.
+
+(Resolved by this round: the old "SIGTERM vs SIGKILL" and "confirm scope for
+external drop" questions are moot — D14 makes external sources read-only.)
 
 ## Superseded Decisions (old lease architecture, pre-2026-07-17 reset)
 

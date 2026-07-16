@@ -61,29 +61,37 @@ in clock ticks since boot), combine with `/proc/uptime` and `SC_CLK_TCK`. Show
 the age when readable, omit otherwise. No new dependency. Marked as a
 nice-to-have in `decision-log.md`.
 
-## Dropping a source (D14)
+## Classifying a row
 
-There is **no logind method to release an inhibitor you do not own** — the lock
-is an fd held by the acquiring process. Releasing therefore targets the holder
-process itself.
+Each listed inhibitor is rendered as one of three types (glyphs in
+[`tray-ux.md`](tray-ux.md)):
 
-| Source | How Sodamint drops it | Confirm? |
+| Type | Test | Meaning |
 | --- | --- | --- |
-| Our own manual lock (pid == `self.proc.pid`) | `self.proc.terminate()` then `.wait()` (today's `stop()`) | no |
-| Any external inhibitor | `os.kill(pid, signal.SIGTERM)` | yes — it kills a real process |
+| **Our own manual lock** | `self.proc is not None and pid == self.proc.pid` | The checkbox toggle's inhibitor. |
+| **Agent source** | `who == "sodamint-agent"` (exact, lowercase) | Set by an agent per [`agent-integration.md`](agent-integration.md); highlighted. |
+| **Other** | neither of the above | Arbitrary system/app inhibitor. |
 
-Failure handling:
+The agent marker is a plain string match on the `who` field returned by
+`ListInhibitors()` — no parsing, no privileged access. The `why` field is the
+row label (may be split on ` · ` for display; treat as opaque otherwise).
 
-- `PermissionError` / `EPERM` — the pid belongs to another user or is
-  privileged. Surface a dialog ("Not permitted to signal pid N"), do not crash.
-- `ProcessLookupError` / `ESRCH` — the process already exited; just refresh, the
-  row will be gone.
-- After any drop attempt, re-poll `ListInhibitors()` and repaint so the list
-  reflects reality within one refresh.
+## Releasing a source
 
-SIGTERM only for v1 (open question: offer SIGKILL escalation if a process
-ignores SIGTERM). A process that ignores SIGTERM simply stays in the list and
-the user can retry.
+Sodamint releases **only its own** manual lock, and only via the checkbox toggle
+(or on quit):
+
+| Source | How it is released |
+| --- | --- |
+| Our own manual lock | `self.proc.terminate()` then `.wait()` (today's `stop()`) |
+| Agent source / any external | **Not released by Sodamint** — read-only (D14) |
+
+There is **no logind method to release an inhibitor you do not own** (the lock is
+an fd held by the acquiring process), and killing the holder was rejected as too
+blunt. External sources are therefore display-only; to stop one, the user acts on
+that process directly (or lets it finish — logind auto-releases on exit). This
+removes the earlier `os.kill`/`SIGTERM` path and its `EPERM`/`ESRCH`/confirm
+handling entirely.
 
 ## Why this needs no watchdog, lease store, or CLI
 

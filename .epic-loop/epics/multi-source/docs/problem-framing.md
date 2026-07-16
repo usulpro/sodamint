@@ -41,12 +41,14 @@ list** — a thin UI layer, not a new service:
 - The icon reflects reality: **active whenever anyone holds an idle/sleep
   inhibitor**, inactive when nobody does. It answers "is something keeping this
   machine awake, and how many things?" without a terminal.
-- The user can **manually drop any source** from the tray. For an external
-  holder that means signalling its PID (there is no logind call to release
-  another process's lock); for Sodamint's own manual lock it is the clean
-  subprocess terminate that exists today.
-- The existing **manual keep-awake toggle keeps working** unchanged, and now
-  simply appears as one row in the dashboard.
+- **Agent sources are highlighted.** Inhibitors an agent set following the
+  contract (`--who=sodamint-agent`, see [`agent-integration.md`](agent-integration.md))
+  are visually distinguished from arbitrary system inhibitors, so the user can
+  tell "my overnight agents" apart at a glance.
+- External sources are **read-only** — Sodamint shows them but never drops
+  another process's lock (see Non-Scope). The existing **manual keep-awake
+  toggle keeps working unchanged** and is the one lock the user controls from
+  the tray; it now also appears as a row in the dashboard.
 
 All keep-awake *mechanics* — reference counting, "awake while any holder lives",
 crash cleanup — remain logind's job. Sodamint never re-implements them.
@@ -57,17 +59,16 @@ crash cleanup — remain logind's job. Sodamint never re-implements them.
   ListInhibitors()` over D-Bus (structured, no parsing, no new dependency),
   filtered to idle/sleep holders. See [`data-source.md`](data-source.md).
 - **Dynamic tray menu** listing each active idle/sleep inhibitor with who / why
-  / pid (and age if cheaply derivable from `/proc`), plus a per-row **Release**.
-  Both tray backends. See [`tray-ux.md`](tray-ux.md).
+  / pid (and age if cheaply derivable from `/proc`), read-only, with agent
+  sources highlighted. Both tray backends. See [`tray-ux.md`](tray-ux.md).
 - **Icon/status driven by the inhibitor count**, not just our own toggle.
-- **Manual drop** = `SIGTERM` the holder PID for external sources (with confirm),
-  clean subprocess terminate for our own lock. See [`data-source.md`](data-source.md).
-- **Keep the manual toggle**, mechanism unchanged; surface it as one dashboard
-  row.
-- **Docs**: update `CLAUDE.md` to the narrowed source-of-truth model, and
-  document the recommended agent integration — wrap agents in
-  `systemd-inhibit --why="…" -- <cmd>` so they appear in the dashboard and are
-  auto-released on exit/crash.
+- **Keep the manual toggle**, mechanism unchanged; it is the only tray control
+  and the only lock Sodamint releases (its own). See [`data-source.md`](data-source.md).
+- **Agent-integration contract** — a documented `systemd-inhibit` wrapper and
+  `--who`/`--why` message format agents follow so their locks appear and are
+  highlighted. See [`agent-integration.md`](agent-integration.md).
+- **Docs**: update `CLAUDE.md` to the narrowed source-of-truth model and point
+  agents at the integration contract.
 
 ## Non-Scope
 
@@ -77,7 +78,9 @@ crash cleanup — remain logind's job. Sodamint never re-implements them.
   chose manual drop (they see a stuck source and drop it) over building
   liveness heuristics. Documented, not solved.
 - **No acquiring locks on behalf of agents.** Agents wrap themselves in
-  `systemd-inhibit`; Sodamint only observes and drops.
+  `systemd-inhibit`; Sodamint only observes.
+- **No dropping/killing external sources.** External inhibitors are read-only
+  (D14); Sodamint releases only its own manual lock.
 - **No macOS port** (D9) — the whole rationale collapses there.
 - **No preventing screen blanking / lock.** As today, Sodamint targets system
   sleep/idle via logind; the DPMS / DE-screensaver layer is left alone.
@@ -89,11 +92,12 @@ crash cleanup — remain logind's job. Sodamint never re-implements them.
   dependency** beyond the current `python3-gi` / AppIndicator / systemd set
   (`Gio` D-Bus is already available through `python3-gi`).
 - Keep both tray backends (AppIndicator + `Gtk.StatusIcon`) working.
-- Degrade gracefully where logind or a PID is not reachable (D-Bus unavailable →
-  fall back to `systemd-inhibit --list`; `EPERM` on kill → surface, don't crash).
+- Degrade gracefully where logind is not reachable (D-Bus unavailable → fall
+  back to `systemd-inhibit --list`; no inhibitors / errors → empty list, not a
+  crash).
 - `_refresh()` stays the single UI-repaint point.
 
 ## Open Questions
 
-Tracked in `decision-log.md` (age column source, SIGTERM-vs-SIGKILL escalation,
-confirm-dialog scope).
+Tracked in `decision-log.md` (age column source, agent-highlight style, quit
+confirm).
