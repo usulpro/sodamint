@@ -1,5 +1,11 @@
 # CLI Reference
 
+> **SUPERSEDED 2026-07-17 — kept for history only, not being built.** The
+> strategic reset (see `../decision-log.md`) dropped the in-app CLI: agents keep
+> the machine awake by wrapping themselves in `systemd-inhibit --why="…" -- <cmd>`,
+> which already provides acquire/release/list. This file describes the retired
+> lease-based CLI design.
+
 All subcommands live on the existing `sodamint` entrypoint. With **no**
 subcommand, `sodamint` launches the tray daemon (today's behavior). With a
 recognized subcommand, it acts as a short-lived **client** that only

@@ -1,5 +1,13 @@
 # Watch Mode & Liveness
 
+> **SUPERSEDED 2026-07-17 — kept for history only, not being built.** The
+> strategic reset (see `../decision-log.md`) removed the watchdog entirely:
+> logind releases a holder's inhibitor when the process dies (kernel closes the
+> fd), and the "alive but hung" case is handled by the user manually dropping
+> the source from the tray. The lease-file model and liveness signals below are
+> retired. Current data-source/release mechanics live in
+> [`data-source.md`](data-source.md).
+
 ## Why
 
 A lease is a promise that "real work is still happening." Agents crash, hang,

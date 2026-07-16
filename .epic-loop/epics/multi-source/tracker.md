@@ -1,6 +1,11 @@
 # Tracker
 
-Epic: Multi-source Keep-awake For Sodamint
+Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
+
+> **Reshaped 2026-07-17 (strategic reset).** The old 5-phase roadmap (lease
+> core + CLI, reference-counted inhibitor, watchdog, wrapper) is **retired** —
+> logind already provides all of it. See the reset note in `decision-log.md`.
+> Retired phases are kept at the bottom for history.
 
 ## Task Statuses
 
@@ -28,78 +33,79 @@ Epic: Multi-source Keep-awake For Sodamint
 
 - Phase status: done
 
-- [x] Kind: documentation-only | Status: done | Capture problem framing, scope, decisions, risks, and the four requested design docs.
+- [x] Kind: documentation-only | Status: done | Capture problem framing, scope, decisions, risks, and the design docs.
   - Outcome: The epic has enough structure to decompose implementation.
   - Surface: `docs/`, `decision-log.md`, `risk-register.md`, `state-of-epic.md`.
   - Acceptance: A future session understands why this epic exists and what to build next.
-  - Docs: `docs/problem-framing.md`, `docs/cli-reference.md`, `docs/tray-ux.md`, `docs/watch-mode.md`, `docs/macos-feasibility.md`.
+  - Docs: `docs/problem-framing.md`, `docs/tray-ux.md`, `docs/data-source.md`, `docs/macos-feasibility.md`.
+- [x] Kind: architecture-reset | Status: done | Reshape from a lease/refcount/watchdog service to a thin tray UI over logind's inhibitor list.
+  - Outcome: The epic no longer rebuilds what `systemd-inhibit`/logind already does; scope is visibility + manual drop only.
+  - Surface: `decision-log.md` (D10–D17 supersede D1–D8), `docs/problem-framing.md`, `docs/tray-ux.md`, new `docs/data-source.md`; `docs/cli-reference.md` + `docs/watch-mode.md` marked superseded.
+  - Acceptance: No active artifact prescribes a lease store, CLI, in-app refcount, or watchdog; the reset rationale is recorded with a pointer to the prior-session analysis.
+  - Docs: `decision-log.md`.
 
-### Phase 2: Lease Core & CLI
-
-- Phase status: todo
-
-- [ ] Kind: implementation | Status: todo | Lease store module: atomic write/read/list/remove of `$XDG_RUNTIME_DIR/sodamint/leases/*.json`.
-  - Outcome: A durable, race-safe on-disk representation of leases.
-  - Surface: `sodamint.py` (new lease-store helpers), lease JSON schema per `docs/watch-mode.md`.
-  - Acceptance: Concurrent writers never produce a partial/corrupt file; unparseable files are skipped, not fatal.
-  - Docs: `docs/watch-mode.md`.
-- [ ] Kind: implementation | Status: todo | CLI dispatch on argv: `acquire`, `release`, `heartbeat`, `list`, `status` act as filesystem clients without starting the GUI.
-  - Outcome: Agents can manage leases from the shell; daemon not required.
-  - Surface: `sodamint.py` `main()` argv dispatch; option parsing per `docs/cli-reference.md`.
-  - Acceptance: `acquire` prints only the id on stdout; `release`/`heartbeat` are idempotent no-ops on missing leases; exit codes match the reference.
-  - Docs: `docs/cli-reference.md`.
-- [ ] Kind: verification | Status: todo | Exercise the CLI end-to-end without the tray: acquire → list → heartbeat → release, plus idempotency and bad-arg exit codes.
-  - Outcome: Proven CLI contract independent of the GUI.
-  - Surface: manual/scripted run against a temp `XDG_RUNTIME_DIR`.
-  - Acceptance: Every row of the `cli-reference.md` behavior table reproduces; no GUI process spawned.
-  - Docs: `docs/cli-reference.md`.
-
-### Phase 3: Tray Integration (reference-counted inhibitor + live menu)
+### Phase 2: Read & Render Inhibitors
 
 - Phase status: todo
 
-- [ ] Kind: implementation | Status: todo | Make the inhibitor reference-counted: hold one `systemd-inhibit` while `lease_count > 0`; `_refresh()` derives from the lease set; `Gio.FileMonitor` on the leases dir triggers refresh.
-  - Outcome: Machine stays awake iff at least one lease is live; state tracks the filesystem.
-  - Surface: `sodamint.py` (`start`/`stop`/`is_on` → lease-set model, FileMonitor wiring).
-  - Acceptance: Creating/removing lease files from the CLI flips the inhibitor and repaints the tray without manual action.
-  - Docs: `docs/tray-ux.md`, `docs/watch-mode.md`.
-- [ ] Kind: implementation | Status: todo | Dynamic tray menu: status header, one row per lease (context + age + submenu with liveness + Release), manual toggle as a lease, quit-with-active-leases warning. Both backends.
-  - Outcome: The tray shows who holds the machine awake and lets the user release a source.
-  - Surface: `sodamint.py` `_build_menu()`/`_refresh()`; AppIndicator `set_menu()` rebuild + StatusIcon fallback.
-  - Acceptance: Lease list renders and updates on both AppIndicator and `Gtk.StatusIcon`; manual toggle creates/removes a `manual (tray)` lease; quit warns when leases are active.
-  - Docs: `docs/tray-ux.md`.
-- [ ] Kind: verification | Status: todo | Drive the tray with live leases and confirm the UX contract on both backends.
-  - Outcome: Verified reference-counting + menu behavior.
-  - Surface: run the app; create/remove leases via CLI; observe icon, list, manual toggle, quit warning; check `systemd-inhibit --list`.
-  - Acceptance: Icon active iff leases > 0; per-source Release works; quit warning appears only with active leases; inhibitor present/absent as expected.
+- [ ] Kind: implementation | Status: todo | Read the live idle/sleep inhibitor list from logind via `login1 ListInhibitors` (Gio D-Bus), filtered per D12, with a `systemd-inhibit --list` parse fallback.
+  - Outcome: Sodamint can enumerate every process keeping the machine awake, as structured `(what, who, why, mode, uid, pid)` records.
+  - Surface: `sodamint.py` — new helper (e.g. `list_inhibitors()`); `Gio` system-bus call; filter + fallback.
+  - Acceptance: Returns the same idle/sleep holders as `systemd-inhibit --list`; returns `[]` (not an exception) when there are none or the bus is unreachable; no new dependency added.
+  - Docs: `docs/data-source.md`.
+- [ ] Kind: implementation | Status: todo | Drive the icon/status and a dynamic per-source menu from the inhibitor list; poll on a `GLib.timeout` + on menu popup; rebuild the menu for both backends.
+  - Outcome: The tray shows one row per idle/sleep inhibitor (why/who/pid, age if cheap) and the icon is active iff ≥1 exists.
+  - Surface: `sodamint.py` — `_refresh()` derives from the inhibitor list; `_build_menu()`/rebuild section; `GLib.timeout_add_seconds`; AppIndicator `set_menu()` + StatusIcon `self._menu`.
+  - Acceptance: Starting/stopping an external `systemd-inhibit` makes a row appear/disappear within one poll and flips the icon; manual toggle appears as its own row; renders on both AppIndicator and StatusIcon.
+  - Docs: `docs/tray-ux.md`, `docs/data-source.md`.
+- [ ] Kind: verification | Status: todo | Drive the dashboard with real external inhibitors on both backends and confirm the render/icon contract.
+  - Outcome: Verified that the list mirrors logind and the icon tracks the count.
+  - Surface: run the app; hold locks via `systemd-inhibit --what=idle:sleep --why=test -- sleep 600` (one or more); observe rows, icon, header count; compare to `systemd-inhibit --list`.
+  - Acceptance: Rows match `--list` (filtered); icon active with ≥1, inactive at 0; both backends render; cleanup kills the test inhibitors.
   - Docs: `docs/tray-ux.md`.
 
-### Phase 4: Watchdog & Liveness
+### Phase 3: Manual Drop & Manual Toggle
 
 - Phase status: todo
 
-- [ ] Kind: implementation | Status: todo | Watchdog timer (default 60s) evaluating PID (+start-time guard), watch-file mtime, and heartbeat; auto-release dead leases; startup reconciliation before acquiring the lock.
-  - Outcome: Dead/stale sources are pruned automatically; a restart never re-holds the lock for dead leases.
-  - Surface: `sodamint.py` (`GLib.timeout_add_seconds`, liveness checks, startup pass).
-  - Acceptance: Killed PID → pruned within a tick; stale watch-file/heartbeat → pruned within `stale_after`+tick; reused PID detected via start-time.
-  - Docs: `docs/watch-mode.md`.
-- [ ] Kind: verification | Status: todo | Validate the full edge-case matrix from `watch-mode.md`.
-  - Outcome: Confidence that the overnight "sleep once work stops" promise holds.
-  - Surface: scripted scenarios — hard crash, hang (stale file), manual quit with leases, manual tray release, same-id re-acquire, daemon-down-then-restart.
-  - Acceptance: Each matrix row cleans the lease via the documented owner within the documented window; no spurious releases under clock skew.
-  - Docs: `docs/watch-mode.md`.
+- [ ] Kind: implementation | Status: todo | Per-source "Release this source": terminate our own subprocess for our lock, else `SIGTERM` the holder pid with a confirm dialog; handle `EPERM`/`ESRCH` gracefully and re-poll.
+  - Outcome: The user can drop any idle/sleep source from the tray, including a hung agent, without a terminal.
+  - Surface: `sodamint.py` — submenu `Release` handler; branch on `pid == self.proc.pid`; `os.kill`; confirm + error dialogs; refresh after.
+  - Acceptance: Dropping an external test inhibitor removes its row within one poll; a non-permitted pid shows an error instead of crashing; our own lock is released cleanly without a kill.
+  - Docs: `docs/tray-ux.md`, `docs/data-source.md`.
+- [ ] Kind: implementation | Status: todo | Reconcile the manual toggle with the new model: it holds our own inhibitor (unchanged `start`/`stop`), shows as its own row, and quit drops only our lock (light confirm only when the toggle is on).
+  - Outcome: The classic one-click keep-awake still works and is consistent with the dashboard; quitting never silently sleeps a machine held by others.
+  - Surface: `sodamint.py` — `_on_toggle_item`/`start`/`stop`/`quit`; identify our row by `self.proc.pid`.
+  - Acceptance: Toggle on → our row + active icon; toggle off → row gone; quit with toggle on drops only our lock and leaves external rows (verified via `--list` after quit); quit with toggle off exits immediately.
+  - Docs: `docs/tray-ux.md`.
+- [ ] Kind: verification | Status: todo | Exercise drop + toggle + quit against the full behavior set on both backends.
+  - Outcome: Verified control surface (drop own/external, confirm, permission failure, quit isolation).
+  - Surface: run the app; external `systemd-inhibit` holders + manual toggle; drop each; attempt a non-permitted drop; quit and re-check `systemd-inhibit --list`.
+  - Acceptance: Every case behaves per `tray-ux.md`/`data-source.md`; no crash on `EPERM`/`ESRCH`; external sources survive our quit.
+  - Docs: `docs/tray-ux.md`, `docs/data-source.md`.
 
-### Phase 5: Wrapper, Docs, End-to-End
+### Phase 4: Docs & End-to-End
 
 - Phase status: todo
 
-- [ ] Kind: implementation | Status: todo | `run --context ... -- <cmd>` scope-guard wrapper (acquire → run → release on any exit); update `CLAUDE.md` to the lease-set source-of-truth model; refresh `install.sh`/README if needed.
-  - Outcome: Leak-proof agent integration + docs that match the new architecture.
-  - Surface: `sodamint.py` (`run` subcommand), `CLAUDE.md`, `install.sh`/README.
-  - Acceptance: Wrapper releases the lease on success, failure, and signal; `CLAUDE.md` no longer claims `self.proc` is the single source of truth.
-  - Docs: `docs/cli-reference.md`.
-- [ ] Kind: verification | Status: todo | Whole-feature run mimicking the real workload: two parallel "agents" (one via `run --`, one via acquire+heartbeat) plus the manual toggle; kill one; confirm the machine only sleeps after the last lease clears.
-  - Outcome: End-to-end proof against the epic's desired outcome.
-  - Surface: live app + two simulated agents + `systemd-inhibit --list`.
-  - Acceptance: Awake while any lease lives; tray shows all three; killed agent auto-pruned; inhibitor released only when all leases are gone.
-  - Docs: `docs/problem-framing.md`, `docs/watch-mode.md`.
+- [ ] Kind: implementation | Status: todo | Update `CLAUDE.md` to the reshaped model (dashboard over logind; `self.proc` is source of truth only for our own lock — D17) and document the recommended agent integration (`systemd-inhibit --why="…" -- <cmd>`); refresh `install.sh`/README if needed.
+  - Outcome: Repo docs match the shipped behavior; agents have a copy-paste keep-awake pattern that shows up in the dashboard and self-releases.
+  - Surface: `CLAUDE.md`, optionally README/`install.sh`.
+  - Acceptance: `CLAUDE.md` no longer claims `self.proc` is the *only* source of truth and describes the dashboard; the documented agent wrapper appears as a row when run.
+  - Docs: `docs/problem-framing.md`, `docs/data-source.md`.
+- [ ] Kind: verification | Status: todo | Whole-feature run mimicking the real workload: two parallel `systemd-inhibit -- <cmd>` "agents" plus the manual toggle; drop one; kill one; quit.
+  - Outcome: End-to-end proof against the reshaped desired outcome.
+  - Surface: live app + two `systemd-inhibit --why=… -- sleep 600` + manual toggle + `systemd-inhibit --list`.
+  - Acceptance: All three show as rows; icon active; manual "Release" drops one; externally killing an agent removes its row within a poll (logind auto-cleanup); quitting leaves the surviving external agent holding the machine awake.
+  - Docs: `docs/problem-framing.md`, `docs/data-source.md`.
+
+## Retired Roadmap (pre-2026-07-17 reset — not being built)
+
+Kept for history. These phases assumed the lease/refcount/watchdog architecture
+that the reset discarded because logind already provides it. Do **not** pick up
+tasks from here.
+
+- **Retired Phase 2 — Lease Core & CLI**: lease store (`$XDG_RUNTIME_DIR/sodamint/leases/*.json`), CLI `acquire`/`release`/`heartbeat`/`list`/`status`. Superseded: `systemd-inhibit` is the acquire/release CLI; logind is the store.
+- **Retired Phase 3 — Reference-counted inhibitor + FileMonitor**: single app-owned inhibitor gated on `lease_count > 0`. Superseded: logind reference-counts each holder's own inhibitor.
+- **Retired Phase 4 — Watchdog & Liveness**: PID/start-time/watch-file/heartbeat pruning. Superseded: kernel closes the fd on holder death; "alive but hung" is handled by manual drop (user's choice).
+- **Retired Phase 5 — `run -- <cmd>` wrapper**: scope-guard acquire/run/release. Superseded: that is literally `systemd-inhibit -- <cmd>`.
