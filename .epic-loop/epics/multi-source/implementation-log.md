@@ -129,3 +129,27 @@
   GLib warning from `child_watch_add` + `stop()`'s `wait()` — to reconcile in
   Phase 3, not this task.
 - Not committed: `.claude/settings.json` (unrelated hook-install infra).
+
+## 2026-07-18 - Phase 2 Task 3: end-to-end verification (verification, closed) — PHASE 2 COMPLETE
+
+- Drove the running app in-process with a real `GLib.MainLoop` so the actual
+  `POLL_SECONDS=4` timer fired (criterion 1 used no manual `_refresh`).
+- Results — all 6 criteria PASS on both AppIndicator and StatusIcon backends:
+  1. Poll-driven update within one interval: external lock auto-appeared as a
+     `●` row + icon active at ~poll+1s, then disappeared within one interval on
+     kill.
+  2. Agent highlight + grouping: `◆ … p2 verify` rendered first, under `Agents`.
+  3. Rows mirror logind: menu source-row pids matched `list_inhibitors()` pids
+     one-to-one.
+  4. Icon at zero: simulated empty (`list_inhibitors → []`) → menu shows only
+     `Idle`, StatusIcon reads back `sodamint-inactive`.
+  5. Both backends rendered live.
+  6. Source/header rows inert (insensitive).
+- No product code changed; no defects. Test inhibitors cleaned up (none left);
+  no app process left running.
+- Notes: live active→inactive icon flip is not observable here because the host
+  always holds ≥7 real inhibitors (NetworkManager/ModemManager/UPower/code/
+  slack/electron/csd-power) — covered via the simulated-empty path. The
+  pre-existing `waitid` warning did not surface (no own-lock start/stop in the
+  harness); still tracked for Phase 3.
+- **Phase 2 (Read & Render Inhibitors) is complete.**

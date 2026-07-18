@@ -46,7 +46,7 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
 
 ### Phase 2: Read & Render Inhibitors
 
-- Phase status: todo
+- Phase status: done (2026-07-18 — read path + dashboard render + end-to-end verification on both backends)
 
 - [x] Kind: implementation | Status: done | Read the live idle/sleep inhibitor list from logind via `login1 ListInhibitors` (Gio D-Bus), filtered per D12, with a `systemd-inhibit --list` parse fallback.
   - Outcome: Sodamint can enumerate every process keeping the machine awake, as structured `(what, who, why, mode, uid, pid)` records.
@@ -60,11 +60,12 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
   - Acceptance: Starting/stopping an external `systemd-inhibit` makes a row appear/disappear within one poll and flips the icon; `--who=sodamint-agent` inhibitors render as highlighted (`◆`) rows listed before all others under an `Agents` header; our manual lock renders as `★` under `Other`; group headers appear only when non-empty; no age is shown; rows are inert on click; renders on both AppIndicator and StatusIcon.
   - Docs: `docs/tray-ux.md`, `docs/data-source.md`, `docs/agent-integration.md`.
   - Closed 2026-07-18: added pure helpers (`_classify`/`_row_label`/`_group_inhibitors`/`_status_text`, `GLYPH`, `AGENT_WHO`); `_refresh()` now repaints icon (active iff ≥1, D13), status header, and a rebuilt grouped read-only menu with a change-signature guard; `POLL_SECONDS=4` timer + StatusIcon popup refresh; checkbox state set before handler connect (feedback guard survives rebuild). Verified: unit helpers, live AppIndicator render (agent `◆` grouped first + `●` others), StatusIcon construct + inert rows + Idle state, real own-lock `★` with pid match, no double-trigger. Lifecycle (`start`/`stop`/`is_on`/`toggle`/`_on_child_exit`) byte-for-byte unchanged. Full both-backends visual + icon-flip-within-poll check is task 3.
-- [ ] Kind: verification | Status: todo | Drive the dashboard with real external + agent inhibitors on both backends and confirm the render/icon/highlight contract.
+- [x] Kind: verification | Status: done | Drive the dashboard with real external + agent inhibitors on both backends and confirm the render/icon/highlight contract.
   - Outcome: Verified that the list mirrors logind, the icon tracks the count, and agent rows are highlighted.
   - Surface: run the app; hold locks via `systemd-inhibit --what=idle:sleep --why=test -- sleep 600` and `systemd-inhibit --what=idle:sleep --who=sodamint-agent --why="epic-loop · test" -- sleep 600`; observe rows, glyphs, icon, header count; compare to `systemd-inhibit --list`.
   - Acceptance: Rows match `--list` (filtered); the agent lock shows the highlighted glyph; icon active with ≥1, inactive at 0; both backends render; cleanup kills the test inhibitors.
   - Docs: `docs/tray-ux.md`, `docs/agent-integration.md`.
+  - Closed 2026-07-18: ran in-process with a real `GLib.MainLoop` so the `POLL_SECONDS=4` timer fired. All 6 criteria PASS on **both** backends — poll auto-picked up an external lock (no manual `_refresh`) and dropped it within one interval; agent `◆` rendered first under `Agents`; menu source-row pids matched `list_inhibitors()` one-to-one; icon-at-zero → `Idle`+`sodamint-inactive` (simulated empty, since the live host always holds ≥7); rows inert. No defects; test inhibitors cleaned up. Live active→inactive icon flip not observable on real data (host never reaches 0 sources) — covered by the simulated-empty path.
 
 ### Phase 3: Manual Toggle & Quit
 
