@@ -66,9 +66,53 @@ dpkg-deb -I dist/sodamint_<v>_all.deb   # control: Architecture: all + Depends
 dpkg-deb -c dist/sodamint_<v>_all.deb   # contents: the file map above
 ```
 
+## Publishing a GitHub Release
+
+**This is a maintainer step, run by a human — not the agent.** It needs a
+configured GitHub remote (`git remote add origin …`) and `gh auth login`. The
+implementation loop never runs these; it only prepares the artifact and notes.
+
+Version/tag for the first release is **`v0.1.0`** (matches `VERSION=0.1.0` in
+`packaging/build-deb.sh` and the artifact name `sodamint_0.1.0_all.deb`).
+
+```bash
+# 1. build the artifact
+packaging/build-deb.sh                       # -> dist/sodamint_0.1.0_all.deb
+
+# 2. tag the release commit and push the tag
+git tag v0.1.0
+git push origin v0.1.0
+
+# 3. create the GitHub Release and upload the .deb
+gh release create v0.1.0 dist/sodamint_0.1.0_all.deb \
+  --title "Sodamint v0.1.0" \
+  --notes "$(...)"                              # paste the notes draft below
+```
+
+(Or save the draft below to a file and use `--notes-file <that-file>`.)
+
+Users then download `sodamint_0.1.0_all.deb` from the Releases page and
+`sudo apt install ./sodamint_0.1.0_all.deb` (see the repo `README.md`).
+
+### v0.1.0 release notes (draft)
+
+Paste as the `--notes` body (or save to a file for `--notes-file`):
+
+> **Sodamint v0.1.0 — first packaged release.**
+>
+> - **Inhibitor dashboard** — the tray lists every process holding the machine
+>   awake (idle/sleep), read from systemd-logind, with who / why / pid.
+> - **Manual keep-awake toggle** — one click holds your own
+>   `systemd-inhibit` lock; the tray icon is active whenever *any* source exists.
+> - **Agent highlighting** — inhibitors set with `--who=sodamint-agent` are
+>   highlighted and grouped first (see `AGENTS.md`).
+> - **Read-only external sources** — Sodamint never drops another process's lock;
+>   *Disable and quit* releases only your own.
+> - **Install** — `sudo apt install ./sodamint_0.1.0_all.deb`
+>   (`Architecture: all`, apt-resolved GTK/AppIndicator/systemd deps).
+
 ## Next
 
-The end-to-end clean-environment install test (`apt install ./…deb`, launch,
-verify keep-awake, `apt remove`) is Phase 5 task 2 and may require a container or
-VM. Publishing via GitHub Releases is task 3; a Launchpad PPA how-to and a
-Flatpak feasibility note are the documented-only tasks 4 and 5.
+A Launchpad PPA how-to (`docs/publishing-ppa.md`) and a Flatpak
+feasibility note (`docs/flatpak-feasibility.md`) are the documented-only tasks 4
+and 5.

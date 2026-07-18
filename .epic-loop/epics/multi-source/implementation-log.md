@@ -284,3 +284,19 @@
   defect; recipe unchanged. Lesson: don't py_compile a package's installed file
   in place during a removal test.
 - No files changed (verification only); rebuilt `.deb` is gitignored.
+
+## 2026-07-18 - Phase 5 Task 3: README + GitHub Release path (implementation, closed)
+
+- New repo-root `README.md`: user-facing — what-it-is, install via release `.deb`
+  (`sudo apt install ./sodamint_0.1.0_all.deb`, apt-resolved deps), run-from-source
+  / `install.sh` alternative, agent keep-awake pointer to `AGENTS.md`, and a
+  build/architecture pointer to `CLAUDE.md` + `docs/packaging.md`.
+- `docs/packaging.md`: added "Publishing a GitHub Release" — the user-gated
+  `build → git tag v0.1.0 → git push → gh release create v0.1.0
+  dist/sodamint_0.1.0_all.deb …` procedure (explicitly maintainer-run, needs a
+  remote + `gh auth login`) plus a pasteable v0.1.0 release-notes draft.
+- Version/tag `v0.1.0` (lockstep with `VERSION=` in build-deb.sh and the artifact
+  name). Verified: README + gh command reference the exact artifact filename;
+  `.deb` rebuilt; nothing published (no tags, no remote — publish is user-gated
+  and impossible here by design); py_compile OK. `sodamint.py` unchanged.
+- Not committed: built `.deb` (gitignored) and `.claude/settings.json`.

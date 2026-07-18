@@ -5,7 +5,7 @@ Slug: `multi-source`
 Created: 2026-07-14T10:21:11+00:00
 Mode: implementation
 Active phase: Phase 5 - Packaging & Distribution (in progress)
-Active task: Phase 5 tasks 1-2 (build recipe + clean-env install verified in Docker) done → next: task 3 (GitHub Release path: README install section + documented user-gated `gh release` step)
+Active task: Phase 5 tasks 1-3 (build recipe + clean-env install + README/release path) done → next: task 4 (documentation-only: Launchpad PPA how-to, docs/publishing-ppa.md)
 
 ## Current State
 
