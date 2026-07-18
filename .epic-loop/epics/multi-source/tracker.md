@@ -103,7 +103,7 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
 
 ### Phase 5: Packaging & Distribution
 
-- Phase status: todo
+- Phase status: done (2026-07-18 — `.deb` build + clean-env install verified; README/release path; PPA + Flatpak docs)
 
 - [x] Kind: implementation | Status: done | Build an installable `.deb` (`Architecture: all`) with apt-resolved dependencies, reusing the file layout and dep list from `install.sh`.
   - Outcome: One `.deb` that installs Sodamint system-wide and pulls its GTK/AppIndicator/systemd deps via apt.
@@ -129,11 +129,12 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
   - Acceptance: The doc covers Launchpad account + GPG key, turning the `packaging/` deb into a source package (`debian/` + `changelog`, `debuild -S`), `dput` upload, and the end-user `add-apt-repository ppa:<owner>/sodamint && apt install sodamint` flow; enough to follow step-by-step.
   - Docs: `docs/publishing-ppa.md`, `docs/packaging.md`.
   - Closed 2026-07-18: `docs/publishing-ppa.md` written — §1 Launchpad account + GPG/SSH key + tooling; §2 the `debian/` source tree (control/changelog/rules/install/source-format, same `Depends` as `install.sh`); §3 `debuild -S -sa`; §4 create PPA + `dput ppa:<owner>/sodamint …_source.changes`; §5 end-user `add-apt-repository … && apt install sodamint`; §6 series/version notes. Documentation-only (D22): no `debian/` tree, source package, PPA, or upload created — verified none exist; `sodamint.py`/`packaging/` untouched.
-- [ ] Kind: documentation-only | Status: todo | Write a Flatpak feasibility & requirements doc — decide-later, do NOT adapt the app now (D22).
+- [x] Kind: documentation-only | Status: done | Write a Flatpak feasibility & requirements doc — decide-later, do NOT adapt the app now (D22).
   - Outcome: A clear record of what Flatpak would take, so the choice is informed and the required changes are known, without touching the code yet.
   - Surface: new `docs/flatpak-feasibility.md` (mirrors the `docs/macos-feasibility.md` pattern).
   - Acceptance: The doc lists the sandbox blockers (no `systemd-inhibit` binary → holding must move to the login1 `Inhibit()` D-Bus fd; SNI/AppIndicator tray), the manifest permissions (`--system-talk-name=org.freedesktop.login1`, StatusNotifier), the Flathub submission flow, and states explicitly that the app is **not** adapted now — Flatpak is gated on the `Inhibit()`-fd change; cross-links `docs/data-source.md` (D11) and D22.
   - Docs: `docs/flatpak-feasibility.md`, `docs/data-source.md`.
+  - Closed 2026-07-18: `docs/flatpak-feasibility.md` written (mirrors macos-feasibility pattern) — gate = no `systemd-inhibit` in sandbox → hold a `login1 Inhibit()` D-Bus fd; SNI/AppIndicator tray (X11 StatusIcon dropped); manifest perms (`--system-talk-name=org.freedesktop.login1`, session-bus + StatusNotifierWatcher, wayland/x11); Flathub flow (app-id, flatpak-builder manifest, AppStream metainfo, PR to flathub/flathub); explicit "not adapted now" gated on the Inhibit()-fd change, referencing D22 + cross-linking D11. Documentation-only: no manifest/build/code change.
 
 ## Retired Roadmap (pre-2026-07-17 reset — not being built)
 

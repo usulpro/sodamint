@@ -312,3 +312,21 @@
   series/version notes (§6). Cross-links `docs/packaging.md`.
 - Documentation-only (D22): no `debian/` tree, source package, PPA, or upload
   created — verified none exist; `sodamint.py`/`packaging/` untouched.
+
+## 2026-07-18 - Phase 5 Task 5: Flatpak feasibility (documentation-only, closed) — PHASE 5 & EPIC COMPLETE
+
+- New `docs/flatpak-feasibility.md` (mirrors macos-feasibility): verdict feasible
+  but NOT adapted now (D22); gate = no `systemd-inhibit` binary in the sandbox →
+  keep-awake must move to a held `login1 Inhibit()` D-Bus fd; reads already via
+  login1 ListInhibitors (D11); tray via StatusNotifierItem (AppIndicator path;
+  X11 StatusIcon dropped); manifest perms (`--system-talk-name=org.freedesktop.login1`,
+  session-bus + StatusNotifierWatcher, wayland/x11); Flathub flow (app-id,
+  flatpak-builder manifest, AppStream metainfo, PR to flathub/flathub); explicit
+  non-adoption referencing D22 + cross-linking D11. No manifest/build/code change.
+- **Phase 5 (Packaging & Distribution) is complete.**
+- **ALL FIVE PHASES COMPLETE.** The epic delivered: a logind inhibitor dashboard
+  (read + render, agent highlight), a regression-safe manual toggle + dynamic
+  quit, aligned repo docs + whole-feature E2E, and packaging (a working
+  Architecture:all `.deb` verified installing on a clean Ubuntu 24.04, a
+  README/GitHub-Release path, and PPA + Flatpak how-tos). Next: implementation-end
+  housekeeping, then the loop goes idle.

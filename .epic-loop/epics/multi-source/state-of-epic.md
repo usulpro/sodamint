@@ -4,8 +4,8 @@ Epic: Inhibitor Dashboard For Sodamint
 Slug: `multi-source`
 Created: 2026-07-14T10:21:11+00:00
 Mode: implementation
-Active phase: Phase 5 - Packaging & Distribution (in progress)
-Active task: Phase 5 tasks 1-4 (build recipe + clean-env install + README/release + PPA how-to) done → next: task 5 (documentation-only: Flatpak feasibility, docs/flatpak-feasibility.md) — the FINAL task
+Active phase: Phase 5 - Packaging & Distribution (DONE) → ALL 5 PHASES COMPLETE
+Active task: none — every phase done (shape → read&render → toggle&quit → docs&E2E → packaging). Pending: implementation-end housekeeping, then loop → idle.
 
 ## Current State
 
