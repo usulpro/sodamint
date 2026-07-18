@@ -10,7 +10,7 @@
 # Result: OUT_DIR/sodamint_<VERSION>_all.deb
 set -euo pipefail
 
-VERSION=0.1.0                                  # bump here for a new release
+VERSION=1.0.0                                  # bump here for a new release
 
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # repo root
 OUT_DIR="${1:-$SRC_DIR/dist}"

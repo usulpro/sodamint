@@ -1,72 +1,139 @@
+<div align="center">
+
+<img src="icons/sodamint-active.svg" alt="Sodamint" width="96" height="96">
+
 # Sodamint
 
-A GTK3 system-tray app that keeps a Linux machine awake **and** shows a live
-dashboard of everything currently holding it awake. It holds a systemd-logind
-`idle:sleep` inhibitor (which is why it works where the classic `caffeine`
-—xdg-screensaver/DPMS— does not), and lists every idle/sleep source
-(who / why / pid) read-only, highlighting agent-set sources. A caffeine analog
-for Linux Mint / Kubuntu.
+**Keep your Linux machine awake — and see exactly what's keeping it awake.**
+
+A tiny GTK3 tray app for Linux Mint / Kubuntu and other systemd desktops.
+A caffeine analog that actually works, plus a live dashboard of every idle/sleep
+inhibitor on the system.
+
+![platform](https://img.shields.io/badge/platform-Linux-blue)
+![backend](https://img.shields.io/badge/keep--awake-systemd--logind-green)
+![toolkit](https://img.shields.io/badge/UI-GTK3%20tray-informational)
+![deps](https://img.shields.io/badge/deps-apt%2C%20no%20pip-lightgrey)
+
+</div>
+
+---
+
+## The problem
+
+On Linux Mint / Kubuntu the "obvious" keep-awake tools poke the wrong layer.
+Classic `caffeine` and X-screensaver/DPMS tricks fight the *screensaver*, but the
+machine still suspends — because modern desktops sleep through **systemd-logind**,
+not the X screensaver. So your long download, backup, render, or **overnight AI
+coding agent** dies when the box goes to sleep.
+
+And when something *is* keeping the machine awake, there's usually no easy way to
+see **who** and **why**.
+
+## What Sodamint does
+
+Sodamint holds the machine awake at the correct layer — a **systemd-logind
+`idle:sleep` inhibitor** — and turns the tray into a live window onto logind's
+inhibitor registry:
+
+- 🥤 **One-click keep-awake.** Toggle *Keep awake (manual)* in the tray; the icon
+  lights up while anything is holding the machine awake.
+- 📋 **Live dashboard.** See every process currently blocking idle/sleep — its
+  reason, and PID — read straight from logind and refreshed automatically.
+- ⭐ **Your own lock is called out** as its own row, so it's always clear which
+  lock is yours to drop.
+- 💠 **Agent sources are highlighted** and grouped, so an overnight agent shows up
+  distinctly from random system services.
+- 📁 **System noise is tucked away** in a `System` submenu — visible when you want
+  it, out of the way when you don't.
+- 🚪 **Honest quit.** Quitting drops **only your own** lock; if agents or other
+  processes are still working, the machine stays awake. The Quit item even says
+  *Disable and quit* when it's about to release your lock.
+
+Everything is **read-only** for other processes: Sodamint never kills or drops a
+lock it doesn't own.
 
 ## Install
 
-### From a release `.deb` (recommended)
-
-Download `sodamint_<version>_all.deb` from the
-[Releases page](../../releases) and install it:
+Grab `sodamint_1.0.0_all.deb` from the [**Releases**](../../releases) page and:
 
 ```bash
-sudo apt install ./sodamint_0.1.0_all.deb
+sudo apt install ./sodamint_1.0.0_all.deb
 ```
 
-`apt` pulls the runtime dependencies automatically
-(`python3-gi`, `gir1.2-gtk-3.0`, `gir1.2-ayatanaappindicator3-0.1`, `systemd`).
-Then launch **Sodamint** from your menu, or run `sodamint`.
+`apt` pulls the dependencies automatically. Then launch **Sodamint** from your
+menu (or run `sodamint`). It'll sit in your tray.
 
-To remove: `sudo apt remove sodamint`.
+Remove with `sudo apt remove sodamint`.
 
-### From source
-
-Run it straight from the checkout:
+<details>
+<summary>Run from source instead</summary>
 
 ```bash
-python3 sodamint.py
+python3 sodamint.py            # run straight from the checkout
+./install.sh                   # or install into ~/.local + login autostart
+./install.sh --uninstall       # undo it
 ```
 
-Or install into your user account (no root) with autostart on login:
-
-```bash
-./install.sh                 # install into ~/.local + enable login autostart
-./install.sh --no-autostart  # install without autostart
-./install.sh --uninstall     # remove everything install.sh created
-```
-
-Runtime dependencies (system packages, not pip):
+System packages it needs:
 
 ```bash
 sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1
 ```
 
-plus `systemd` (for `systemd-inhibit`).
+plus `systemd` (for `systemd-inhibit`), which you already have.
+</details>
 
-## Using it
+## Keeping awake from an agent or a service
 
-- Click the tray checkbox **Keep awake (manual)** to hold your own keep-awake
-  lock; uncheck it to release. The menu also lists every other process keeping
-  the machine awake (read-only) — agent sources are highlighted and grouped
-  first.
-- The icon is active whenever **anything** is keeping the machine awake, not just
-  your own toggle.
-- **Quit** drops only your own lock; other sources keep the machine awake, so the
-  Quit item reads *Disable and quit* while your lock is on.
+This is the key idea: **Sodamint doesn't mediate anything.** Your agent, script,
+or service keeps the machine awake by talking to **systemd directly** — Sodamint
+only *reads* that state and *shows* it. Nothing has to integrate with Sodamint,
+and Sodamint doesn't need to be running for keep-awake to work.
 
-## Keep-awake from an agent / script
+Wrap your long-running work in `systemd-inhibit`. logind holds the machine awake
+while the command runs and **auto-releases when it exits** (success, crash, or
+kill — nothing leaks):
 
-Automated agents can keep the machine awake for the duration of their work and
-show up as a highlighted source — see [`AGENTS.md`](AGENTS.md) for the one-liner
-and contract.
+```bash
+systemd-inhibit --what=idle:sleep --who="sodamint-agent" \
+  --why="my-agent · my-project · overnight run" --mode=block \
+  -- your-command --and --its --args
+```
 
-## Building & packaging
+That's it. The `--who=sodamint-agent` marker is purely cosmetic — it's what makes
+Sodamint **highlight** the row. Drop the marker and it still keeps the machine
+awake; it just shows as a plain system source. Full contract (fields, an explicit
+hold/release variant for non-command sessions) is in [`AGENTS.md`](AGENTS.md).
 
-Contributors: see [`CLAUDE.md`](CLAUDE.md) for architecture and
-`.epic-loop/epics/multi-source/docs/packaging.md` for how the `.deb` is built and
-released.
+Because it's all logind underneath: if the holder dies, the kernel releases the
+lock automatically; multiple holders reference-count natively; and Sodamint just
+mirrors whatever logind reports.
+
+## Supported systems
+
+Sodamint needs three things: **systemd-logind** (the keep-awake engine), **GTK3 +
+python3-gi**, and a system tray that supports **StatusNotifierItem/AppIndicator**
+(with a fallback to the legacy `GtkStatusIcon`).
+
+By our assessment it should run on most modern systemd Linux desktops. Where we
+expect it to be at home:
+
+| Desktop / distro | Notes |
+| --- | --- |
+| **Linux Mint (Cinnamon)** | Primary target; developed and tested here. |
+| **Kubuntu (KDE Plasma)** | SNI tray is native. |
+| **Ubuntu (GNOME)** | Works with an AppIndicator/tray extension enabled. |
+| **Other Debian/Ubuntu + systemd** | Should work given the deps above. |
+| **Other systemd distros** | Likely fine with equivalent GTK3/AppIndicator packages; not specifically tested. |
+
+The `.deb` is `Architecture: all` (pure Python + assets), so it isn't tied to a
+CPU architecture. It will **not** work where there's no systemd-logind (e.g. a
+plain container, or non-systemd inits).
+
+## For contributors
+
+The whole app is one file — [`sodamint.py`](sodamint.py). See
+[`CLAUDE.md`](CLAUDE.md) for architecture and
+[`.epic-loop/epics/multi-source/docs/`](.epic-loop/epics/multi-source/docs/) for
+the design docs and packaging (`.deb` build, PPA and Flatpak notes).

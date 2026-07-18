@@ -72,33 +72,33 @@ dpkg-deb -c dist/sodamint_<v>_all.deb   # contents: the file map above
 configured GitHub remote (`git remote add origin …`) and `gh auth login`. The
 implementation loop never runs these; it only prepares the artifact and notes.
 
-Version/tag for the first release is **`v0.1.0`** (matches `VERSION=0.1.0` in
-`packaging/build-deb.sh` and the artifact name `sodamint_0.1.0_all.deb`).
+Version/tag for the first release is **`v1.0.0`** (matches `VERSION=1.0.0` in
+`packaging/build-deb.sh` and the artifact name `sodamint_1.0.0_all.deb`).
 
 ```bash
 # 1. build the artifact
-packaging/build-deb.sh                       # -> dist/sodamint_0.1.0_all.deb
+packaging/build-deb.sh                       # -> dist/sodamint_1.0.0_all.deb
 
 # 2. tag the release commit and push the tag
-git tag v0.1.0
-git push origin v0.1.0
+git tag v1.0.0
+git push origin v1.0.0
 
 # 3. create the GitHub Release and upload the .deb
-gh release create v0.1.0 dist/sodamint_0.1.0_all.deb \
-  --title "Sodamint v0.1.0" \
+gh release create v1.0.0 dist/sodamint_1.0.0_all.deb \
+  --title "Sodamint v1.0.0" \
   --notes "$(...)"                              # paste the notes draft below
 ```
 
 (Or save the draft below to a file and use `--notes-file <that-file>`.)
 
-Users then download `sodamint_0.1.0_all.deb` from the Releases page and
-`sudo apt install ./sodamint_0.1.0_all.deb` (see the repo `README.md`).
+Users then download `sodamint_1.0.0_all.deb` from the Releases page and
+`sudo apt install ./sodamint_1.0.0_all.deb` (see the repo `README.md`).
 
-### v0.1.0 release notes (draft)
+### v1.0.0 release notes (draft)
 
 Paste as the `--notes` body (or save to a file for `--notes-file`):
 
-> **Sodamint v0.1.0 — first packaged release.**
+> **Sodamint v1.0.0 — first packaged release.**
 >
 > - **Inhibitor dashboard** — the tray lists every process holding the machine
 >   awake (idle/sleep), read from systemd-logind, with who / why / pid.
@@ -108,7 +108,7 @@ Paste as the `--notes` body (or save to a file for `--notes-file`):
 >   highlighted and grouped first (see `AGENTS.md`).
 > - **Read-only external sources** — Sodamint never drops another process's lock;
 >   *Disable and quit* releases only your own.
-> - **Install** — `sudo apt install ./sodamint_0.1.0_all.deb`
+> - **Install** — `sudo apt install ./sodamint_1.0.0_all.deb`
 >   (`Architecture: all`, apt-resolved GTK/AppIndicator/systemd deps).
 
 ## Next

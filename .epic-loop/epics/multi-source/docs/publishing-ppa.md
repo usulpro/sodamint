@@ -8,7 +8,7 @@ stays as-is for one-off installs; a PPA additionally needs a Debian **source**
 package that Launchpad builds itself.
 
 Replace `<owner>` with your Launchpad username and `<version>` with the release
-version (e.g. `0.1.0`) throughout.
+version (e.g. `1.0.0`) throughout.
 
 ## 1. Prerequisites (one-time)
 
