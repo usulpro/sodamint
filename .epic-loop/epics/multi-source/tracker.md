@@ -123,11 +123,12 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
   - Acceptance: The `.deb` artifact + release notes + README snippet are ready; publishing is one documented command run by the user (outward-facing action, not auto-run by the agent).
   - Docs: `docs/packaging.md`, repo `README`.
   - Closed 2026-07-18: new repo-root `README.md` (install via `sudo apt install ./sodamint_0.1.0_all.deb`, run-from-source/`install.sh` alt, `AGENTS.md` pointer); `docs/packaging.md` gained a "Publishing a GitHub Release" section (build → `git tag v0.1.0`/push → `gh release create v0.1.0 dist/sodamint_0.1.0_all.deb …`) + a v0.1.0 release-notes draft, explicitly a maintainer/remote-required step. Tag/version `v0.1.0` chosen. Verified: README + gh command in lockstep with the artifact filename; artifact rebuilt; nothing published (no tags, no remote); py_compile OK. Nothing outward-facing executed.
-- [ ] Kind: documentation-only | Status: todo | Write a Launchpad PPA publishing how-to for later (no PPA created now).
+- [x] Kind: documentation-only | Status: done | Write a Launchpad PPA publishing how-to for later (no PPA created now).
   - Outcome: A future session can put the same package on a PPA without re-researching.
   - Surface: new `docs/publishing-ppa.md`.
   - Acceptance: The doc covers Launchpad account + GPG key, turning the `packaging/` deb into a source package (`debian/` + `changelog`, `debuild -S`), `dput` upload, and the end-user `add-apt-repository ppa:<owner>/sodamint && apt install sodamint` flow; enough to follow step-by-step.
   - Docs: `docs/publishing-ppa.md`, `docs/packaging.md`.
+  - Closed 2026-07-18: `docs/publishing-ppa.md` written — §1 Launchpad account + GPG/SSH key + tooling; §2 the `debian/` source tree (control/changelog/rules/install/source-format, same `Depends` as `install.sh`); §3 `debuild -S -sa`; §4 create PPA + `dput ppa:<owner>/sodamint …_source.changes`; §5 end-user `add-apt-repository … && apt install sodamint`; §6 series/version notes. Documentation-only (D22): no `debian/` tree, source package, PPA, or upload created — verified none exist; `sodamint.py`/`packaging/` untouched.
 - [ ] Kind: documentation-only | Status: todo | Write a Flatpak feasibility & requirements doc — decide-later, do NOT adapt the app now (D22).
   - Outcome: A clear record of what Flatpak would take, so the choice is informed and the required changes are known, without touching the code yet.
   - Surface: new `docs/flatpak-feasibility.md` (mirrors the `docs/macos-feasibility.md` pattern).

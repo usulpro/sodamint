@@ -300,3 +300,15 @@
   `.deb` rebuilt; nothing published (no tags, no remote — publish is user-gated
   and impossible here by design); py_compile OK. `sodamint.py` unchanged.
 - Not committed: built `.deb` (gitignored) and `.claude/settings.json`.
+
+## 2026-07-18 - Phase 5 Task 4: Launchpad PPA how-to (documentation-only, closed)
+
+- New `docs/publishing-ppa.md`: step-by-step future procedure — Launchpad account
+  + GPG/SSH keys + tooling (§1); convert the dpkg-deb binary recipe into a
+  `debian/` source tree (control/changelog/rules/install/source-format, same
+  `Depends` as install.sh) (§2); `debuild -S -sa` signed build (§3); create PPA +
+  `dput ppa:<owner>/sodamint …_source.changes` (§4); end-user
+  `add-apt-repository ppa:<owner>/sodamint && apt install sodamint` (§5);
+  series/version notes (§6). Cross-links `docs/packaging.md`.
+- Documentation-only (D22): no `debian/` tree, source package, PPA, or upload
+  created — verified none exist; `sodamint.py`/`packaging/` untouched.
