@@ -242,3 +242,24 @@
   with a finally. Never `pgrep -f <token>` when the driver command contains it.
 - **Phase 4 (Docs & End-to-End) is complete.** The reshaped desired outcome is
   proven end-to-end.
+
+## 2026-07-18 - Phase 5 Task 1: .deb build recipe (implementation, closed)
+
+- New `packaging/build-deb.sh`: stages the install.sh file map system-wide
+  (`/usr/share/sodamint/sodamint.py`, `/usr/bin/sodamint` launcher, icons →
+  hicolor/scalable/status, `sodamint.desktop` → applications), writes
+  `DEBIAN/control` + `postinst`/`postrm` (icon/desktop cache refresh), and packs
+  with `dpkg-deb --build --root-owner-group`. `VERSION=0.1.0`; optional out dir
+  (default `dist/`). Uses only dpkg-deb (debuild/fpm/lintian absent here).
+- New `docs/packaging.md`: build steps, file-layout table, Depends↔check_deps
+  lockstep, version bump point, artifact location, inspection commands.
+- `.gitignore`: added `dist/` + `*.deb` (built package is an artifact, not
+  source — only the recipe + docs are committed).
+- Verified (techlead re-ran): `Architecture: all`; `Depends: python3-gi,
+  gir1.2-gtk-3.0, gir1.2-ayatanaappindicator3-0.1, systemd` (exact install.sh
+  set); file map + modes correct; launcher body
+  `exec python3 /usr/share/sodamint/sodamint.py "$@"`; package root 0755;
+  py_compile OK; `.deb` confirmed gitignored. `sodamint.py` unchanged.
+- Not committed: the built `.deb` (dist/) and `.claude/settings.json`.
+- Constraint for task 2: clean-env `apt install` needs a container/VM or a
+  deps-purge (this host already has the runtime deps installed).

@@ -8,3 +8,7 @@ __pycache__/
 # epic-loop runtime state (machine/session-specific)
 .epic-loop/.runtime/
 .epic-loop/epics/*/.runtime/
+
+# build artifacts (rebuilt from packaging/)
+dist/
+*.deb

@@ -105,11 +105,12 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
 
 - Phase status: todo
 
-- [ ] Kind: implementation | Status: todo | Build an installable `.deb` (`Architecture: all`) with apt-resolved dependencies, reusing the file layout and dep list from `install.sh`.
+- [x] Kind: implementation | Status: done | Build an installable `.deb` (`Architecture: all`) with apt-resolved dependencies, reusing the file layout and dep list from `install.sh`.
   - Outcome: One `.deb` that installs Sodamint system-wide and pulls its GTK/AppIndicator/systemd deps via apt.
   - Surface: new `packaging/` (a `debian/` control dir + build script, or an `fpm` recipe): `Depends: python3-gi, gir1.2-gtk-3.0, gir1.2-ayatanaappindicator3-0.1, systemd`; file map (`sodamint.py`→`/usr/share/sodamint` + `/usr/bin/sodamint` launcher, icons→`hicolor/scalable/status`, `sodamint.desktop`→`/usr/share/applications`); `postinst` running `gtk-update-icon-cache`/`update-desktop-database` (mirrors `install.sh`).
   - Acceptance: `dpkg-deb`/`debuild` produces `sodamint_<v>_all.deb`; `apt-cache`/`dpkg -I` shows the correct `Depends`; the dep list matches `install.sh check_deps`.
   - Docs: `docs/packaging.md` (new), `docs/problem-framing.md`.
+  - Closed 2026-07-18: `packaging/build-deb.sh` stages the system-wide file map + `DEBIAN/control`/`postinst`/`postrm` and packs with `dpkg-deb --build --root-owner-group` (no debuild/fpm — absent here); `VERSION=0.1.0`. Verified (techlead re-ran the build): `Architecture: all`, `Depends` = the exact `install.sh check_deps` set, file map/modes correct (launcher 0755, `.py`/icons/desktop 0644, root 0755). `docs/packaging.md` authored. Built `.deb` lands in `dist/` (gitignored — build artifact, not committed). Clean-env `apt install` test is task 2 (needs container/VM; this host already has the deps).
 - [ ] Kind: verification | Status: todo | Install the built `.deb` end-to-end in a clean environment and confirm the packaged app runs and keeps-awake.
   - Outcome: Proven that the package installs, resolves deps, launches, and holds/releases a lock with only its declared dependencies.
   - Surface: a clean container/VM (or deps-purged check); `sudo apt install ./sodamint_<v>_all.deb`; launch `sodamint`; observe tray + `systemd-inhibit --list`; `sudo apt remove sodamint`.

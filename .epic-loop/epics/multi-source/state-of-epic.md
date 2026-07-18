@@ -4,8 +4,8 @@ Epic: Inhibitor Dashboard For Sodamint
 Slug: `multi-source`
 Created: 2026-07-14T10:21:11+00:00
 Mode: implementation
-Active phase: Phase 4 - Docs & End-to-End (DONE) → next: Phase 5 - Packaging & Distribution
-Active task: Phase 4 fully closed (docs aligned + whole-feature E2E) → next: Phase 5 task 1 (build an installable `.deb`, Architecture: all)
+Active phase: Phase 5 - Packaging & Distribution (in progress)
+Active task: Phase 5 task 1 (`.deb` build recipe + docs/packaging.md) done → next: task 2 (clean-env `.deb` install verification — needs container/VM or deps-purge)
 
 ## Current State
 
