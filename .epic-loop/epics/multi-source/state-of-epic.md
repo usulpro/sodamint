@@ -32,9 +32,13 @@ Active task: TBD (next: Phase 2 — read & render inhibitors)
   (unchanged, "do not port").
 - Superseded docs kept for history with banners: `docs/cli-reference.md`,
   `docs/watch-mode.md`.
-- `tracker.md` reshaped to a 4-phase roadmap (Shape → Read&Render(+highlight) →
-  Manual Toggle&Quit → Docs&E2E); the old lease/CLI/watchdog/wrapper phases are
-  retired at the bottom.
+- `tracker.md` reshaped to a **5-phase** roadmap (Shape → Read&Render(+highlight)
+  → Manual Toggle&Quit → Docs&E2E → Packaging&Distribution); the old
+  lease/CLI/watchdog/wrapper phases are retired at the bottom.
+- **Phase 5 added 2026-07-17 (D22):** build a `.deb` and publish via GitHub
+  Releases; write a Launchpad PPA how-to (`docs/publishing-ppa.md`) and a
+  Flatpak feasibility/requirements doc (`docs/flatpak-feasibility.md`) — PPA and
+  Flatpak are documented-only, the app is **not** adapted for Flatpak now.
 
 ## Blockers
 

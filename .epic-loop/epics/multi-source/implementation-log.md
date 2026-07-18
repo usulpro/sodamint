@@ -60,3 +60,23 @@
   acceptance), `state-of-epic.md`.
 - Design is now fully settled — no open questions. Ready for Phase 2
   implementation. Still no driver bound.
+
+## 2026-07-17 - Added Phase 5: Packaging & Distribution (D22, shaping)
+
+- User asked to add a packaging/distribution phase with a clear split of
+  execution vs documentation:
+  - **Build a `.deb`** (`Architecture: all`, apt-resolved deps) — executed.
+  - **Publish via GitHub Releases** — executed (artifact + README + documented
+    `gh release` step; actual publish is user-gated).
+  - **Launchpad PPA** — **documented only** (`docs/publishing-ppa.md`), not set
+    up now.
+  - **Flatpak** — **documented only** (`docs/flatpak-feasibility.md`): list the
+    requirements + code changes (holding via login1 `Inhibit()` D-Bus fd, SNI
+    tray, manifest perms, Flathub flow). Do **not** adapt the app for Flatpak
+    now.
+- Captured as **D22** and a new **Phase 5** in `tracker.md` (2 implementation +
+  1 verification + 2 documentation-only tasks). Scope/non-scope updated in
+  `docs/problem-framing.md`; `state-of-epic.md` now reflects a 5-phase roadmap.
+- New docs to be authored during implementation: `docs/packaging.md`,
+  `docs/publishing-ppa.md`, `docs/flatpak-feasibility.md`.
+- Still shaping; implementation not started; no driver bound.

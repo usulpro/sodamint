@@ -96,11 +96,22 @@ central. New decisions **D10–D17** define the reshaped architecture.
   No confirmation dialog. External sources are unaffected either way.
   (Resolves the quit-confirm open question: dynamic label, no dialog.)
 
+- **D22 — Distribution: `.deb` via GitHub Releases now; PPA and Flatpak are
+  documented-only, not built.** The `.deb` (`Architecture: all`, deps resolved
+  by apt) is the primary artifact and GitHub Releases the primary channel —
+  both fit the Mint/Kubuntu/Ubuntu audience with **no code changes**. A Launchpad
+  PPA is deferred to a how-to doc (`docs/publishing-ppa.md`), not set up in this
+  epic. Flatpak is **explicitly not adapted now**: it would require holding the
+  lock via the login1 `Inhibit()` D-Bus fd instead of the `systemd-inhibit`
+  subprocess (adjacent to D11's D-Bus direction) plus SNI tray permissions —
+  captured as a feasibility/requirements doc (`docs/flatpak-feasibility.md`)
+  only. See `tracker.md` Phase 5.
+
 ## Open Questions
 
 - None open. (The earlier age / highlight-style / quit-confirm questions are
   resolved by D19–D21; the external-drop questions — SIGTERM-vs-SIGKILL, confirm
-  scope — are moot under D14.)
+  scope — are moot under D14. Distribution is settled by D22.)
 
 ## Superseded Decisions (old lease architecture, pre-2026-07-17 reset)
 

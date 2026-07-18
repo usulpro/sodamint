@@ -94,6 +94,36 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
   - Acceptance: All three show as rows (two highlighted `◆`, one `★`); icon active; toggling the manual lock off drops only our row; externally killing an agent removes its row within a poll (logind auto-cleanup, no code of ours); quitting leaves the surviving external agents holding the machine awake.
   - Docs: `docs/problem-framing.md`, `docs/agent-integration.md`.
 
+### Phase 5: Packaging & Distribution
+
+- Phase status: todo
+
+- [ ] Kind: implementation | Status: todo | Build an installable `.deb` (`Architecture: all`) with apt-resolved dependencies, reusing the file layout and dep list from `install.sh`.
+  - Outcome: One `.deb` that installs Sodamint system-wide and pulls its GTK/AppIndicator/systemd deps via apt.
+  - Surface: new `packaging/` (a `debian/` control dir + build script, or an `fpm` recipe): `Depends: python3-gi, gir1.2-gtk-3.0, gir1.2-ayatanaappindicator3-0.1, systemd`; file map (`sodamint.py`→`/usr/share/sodamint` + `/usr/bin/sodamint` launcher, icons→`hicolor/scalable/status`, `sodamint.desktop`→`/usr/share/applications`); `postinst` running `gtk-update-icon-cache`/`update-desktop-database` (mirrors `install.sh`).
+  - Acceptance: `dpkg-deb`/`debuild` produces `sodamint_<v>_all.deb`; `apt-cache`/`dpkg -I` shows the correct `Depends`; the dep list matches `install.sh check_deps`.
+  - Docs: `docs/packaging.md` (new), `docs/problem-framing.md`.
+- [ ] Kind: verification | Status: todo | Install the built `.deb` end-to-end in a clean environment and confirm the packaged app runs and keeps-awake.
+  - Outcome: Proven that the package installs, resolves deps, launches, and holds/releases a lock with only its declared dependencies.
+  - Surface: a clean container/VM (or deps-purged check); `sudo apt install ./sodamint_<v>_all.deb`; launch `sodamint`; observe tray + `systemd-inhibit --list`; `sudo apt remove sodamint`.
+  - Acceptance: Fresh install auto-resolves `python3-gi`/`gir1.2-*`; tray icon appears; manual toggle holds then releases an inhibitor (via `--list`); `apt remove` leaves no stray files (icons/desktop deregistered).
+  - Docs: `docs/packaging.md`.
+- [ ] Kind: implementation | Status: todo | Prepare a GitHub Release for the `.deb` and document the user install path; the actual publish is a user-gated one-command step.
+  - Outcome: A tagged release carries the `.deb`, and the README tells users how to install it.
+  - Surface: repo `README` install section (`sudo apt install ./sodamint_<v>_all.deb`); a documented `gh release create <tag> sodamint_<v>_all.deb` procedure in `docs/packaging.md`; version/tag chosen.
+  - Acceptance: The `.deb` artifact + release notes + README snippet are ready; publishing is one documented command run by the user (outward-facing action, not auto-run by the agent).
+  - Docs: `docs/packaging.md`, repo `README`.
+- [ ] Kind: documentation-only | Status: todo | Write a Launchpad PPA publishing how-to for later (no PPA created now).
+  - Outcome: A future session can put the same package on a PPA without re-researching.
+  - Surface: new `docs/publishing-ppa.md`.
+  - Acceptance: The doc covers Launchpad account + GPG key, turning the `packaging/` deb into a source package (`debian/` + `changelog`, `debuild -S`), `dput` upload, and the end-user `add-apt-repository ppa:<owner>/sodamint && apt install sodamint` flow; enough to follow step-by-step.
+  - Docs: `docs/publishing-ppa.md`, `docs/packaging.md`.
+- [ ] Kind: documentation-only | Status: todo | Write a Flatpak feasibility & requirements doc — decide-later, do NOT adapt the app now (D22).
+  - Outcome: A clear record of what Flatpak would take, so the choice is informed and the required changes are known, without touching the code yet.
+  - Surface: new `docs/flatpak-feasibility.md` (mirrors the `docs/macos-feasibility.md` pattern).
+  - Acceptance: The doc lists the sandbox blockers (no `systemd-inhibit` binary → holding must move to the login1 `Inhibit()` D-Bus fd; SNI/AppIndicator tray), the manifest permissions (`--system-talk-name=org.freedesktop.login1`, StatusNotifier), the Flathub submission flow, and states explicitly that the app is **not** adapted now — Flatpak is gated on the `Inhibit()`-fd change; cross-links `docs/data-source.md` (D11) and D22.
+  - Docs: `docs/flatpak-feasibility.md`, `docs/data-source.md`.
+
 ## Retired Roadmap (pre-2026-07-17 reset — not being built)
 
 Kept for history. These phases assumed the lease/refcount/watchdog architecture

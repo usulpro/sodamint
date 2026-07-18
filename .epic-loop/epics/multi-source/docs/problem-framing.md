@@ -69,6 +69,10 @@ crash cleanup — remain logind's job. Sodamint never re-implements them.
   highlighted. See [`agent-integration.md`](agent-integration.md).
 - **Docs**: update `CLAUDE.md` to the narrowed source-of-truth model and point
   agents at the integration contract.
+- **Packaging & distribution** (Phase 5) — a `.deb` (`Architecture: all`)
+  published via GitHub Releases; a Launchpad PPA how-to and a Flatpak
+  feasibility/requirements doc are written but **not** executed. See
+  `tracker.md` Phase 5, `docs/packaging.md`, `docs/flatpak-feasibility.md`, D22.
 
 ## Non-Scope
 
@@ -82,6 +86,9 @@ crash cleanup — remain logind's job. Sodamint never re-implements them.
 - **No dropping/killing external sources.** External inhibitors are read-only
   (D14); Sodamint releases only its own manual lock.
 - **No macOS port** (D9) — the whole rationale collapses there.
+- **No adapting the app to the Flatpak sandbox** (D22). Only a
+  feasibility+requirements doc is produced; the login1 `Inhibit()`-fd rewrite it
+  would need is not done in this epic. A PPA is likewise documented, not set up.
 - **No preventing screen blanking / lock.** As today, Sodamint targets system
   sleep/idle via logind; the DPMS / DE-screensaver layer is left alone.
 - **No network / remote control.** Everything is local to one machine/session.
