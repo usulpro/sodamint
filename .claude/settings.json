@@ -8,7 +8,7 @@
         "matcher": "",
         "hooks": [
           {
-            "command": "node '/projects/my-projects/sodamint/Sodamint/.claude/skills/epic-loop/scripts/hook.mjs' --root '/projects/my-projects/sodamint/Sodamint'",
+            "command": "node '/projects/my-projects/sodamint/sodamint-repo/.claude/skills/epic-loop/scripts/hook.mjs' --root '/projects/my-projects/sodamint/sodamint-repo'",
             "timeout": 30,
             "type": "command"
           }
@@ -20,7 +20,7 @@
         "matcher": "",
         "hooks": [
           {
-            "command": "node '/projects/my-projects/sodamint/Sodamint/.claude/skills/epic-loop/scripts/hook.mjs' --root '/projects/my-projects/sodamint/Sodamint'",
+            "command": "node '/projects/my-projects/sodamint/sodamint-repo/.claude/skills/epic-loop/scripts/hook.mjs' --root '/projects/my-projects/sodamint/sodamint-repo'",
             "timeout": 30,
             "type": "command"
           }
@@ -32,7 +32,7 @@
         "matcher": "",
         "hooks": [
           {
-            "command": "node '/projects/my-projects/sodamint/Sodamint/.claude/skills/epic-loop/scripts/hook.mjs' --root '/projects/my-projects/sodamint/Sodamint'",
+            "command": "node '/projects/my-projects/sodamint/sodamint-repo/.claude/skills/epic-loop/scripts/hook.mjs' --root '/projects/my-projects/sodamint/sodamint-repo'",
             "timeout": 30,
             "type": "command"
           }
