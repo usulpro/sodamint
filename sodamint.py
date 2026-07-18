@@ -12,6 +12,7 @@ Under the hood it runs exactly:
 and releases the lock by terminating that process.
 """
 
+import collections
 import signal
 import subprocess
 import sys
@@ -19,7 +20,7 @@ import sys
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import GLib, Gtk  # noqa: E402
+from gi.repository import Gio, GLib, Gtk  # noqa: E402
 
 # AppIndicator lives under different namespaces on different distros.
 # Try the modern Ayatana one first, then the legacy name.
@@ -37,6 +38,94 @@ INHIBIT_WHAT = "idle:sleep"
 INHIBIT_WHY = "Sodamint keep-awake"
 ICON_ACTIVE = "sodamint-active"
 ICON_INACTIVE = "sodamint-inactive"
+
+# One logind inhibitor as returned by ListInhibitors(): (what, who, why, mode,
+# uid, pid). `what` is a colon list (e.g. "idle:sleep"); uid/pid are ints.
+Inhibitor = collections.namedtuple("Inhibitor", "what who why mode uid pid")
+
+
+def _keeps_awake(what):
+    """True iff this inhibitor's `what` actually blocks idle/sleep (D12)."""
+    kinds = str(what).split(":")
+    return "idle" in kinds or "sleep" in kinds
+
+
+def _list_inhibitors_dbus():
+    """Primary path: logind ListInhibitors over the system bus via Gio.
+
+    Returns a list of Inhibitor (unfiltered). Raises on any bus/logind error so
+    the caller can fall back.
+    """
+    bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+    res = bus.call_sync(
+        "org.freedesktop.login1", "/org/freedesktop/login1",
+        "org.freedesktop.login1.Manager", "ListInhibitors",
+        None, GLib.VariantType("(a(ssssuu))"),
+        Gio.DBusCallFlags.NONE, -1, None,
+    )
+    # unpack()[0] is a list of (what, who, why, mode, uid, pid) tuples.
+    return [Inhibitor(*row) for row in res.unpack()[0]]
+
+
+def _list_inhibitors_fallback():
+    """Fallback: scrape `systemd-inhibit --list` when D-Bus is unavailable.
+
+    Parses by the header's column offsets (WHO/UID/USER/PID/COMM/WHAT/WHY/MODE)
+    so multi-word WHO/WHY fields survive. Returns [] on any failure.
+    """
+    try:
+        out = subprocess.run(
+            ["systemd-inhibit", "--list", "--no-pager"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return []
+
+    lines = out.splitlines()
+    if not lines:
+        return []
+    header = lines[0]
+    cols = ["WHO", "UID", "USER", "PID", "COMM", "WHAT", "WHY", "MODE"]
+    starts = []
+    for name in cols:
+        idx = header.find(name)
+        if idx < 0:
+            return []  # unexpected format — bail to []
+        starts.append(idx)
+    bounds = list(zip(starts, starts[1:] + [None]))
+
+    def field(line, i):
+        s, e = bounds[i]
+        return line[s:e].strip() if e is not None else line[s:].strip()
+
+    inhibitors = []
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        try:
+            uid = int(field(line, 1))
+            pid = int(field(line, 3))
+        except ValueError:
+            continue  # legend/blank/garbage line
+        inhibitors.append(Inhibitor(
+            what=field(line, 5), who=field(line, 0), why=field(line, 6),
+            mode=field(line, 7), uid=uid, pid=pid,
+        ))
+    return inhibitors
+
+
+def list_inhibitors():
+    """Return the live idle/sleep inhibitors as a list of Inhibitor records.
+
+    D-Bus (login1) is the primary source; `systemd-inhibit --list` is a
+    fallback. Only rows that actually keep the machine awake are kept (D12).
+    Never raises: returns [] when nothing is held or the source is unreachable.
+    """
+    try:
+        rows = _list_inhibitors_dbus()
+    except Exception:
+        rows = _list_inhibitors_fallback()
+    return [r for r in rows if _keeps_awake(r.what)]
 
 
 class Sodamint:

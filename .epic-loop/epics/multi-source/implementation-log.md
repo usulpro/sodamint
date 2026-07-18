@@ -80,3 +80,23 @@
 - New docs to be authored during implementation: `docs/packaging.md`,
   `docs/publishing-ppa.md`, `docs/flatpak-feasibility.md`.
 - Still shaping; implementation not started; no driver bound.
+
+## 2026-07-18 - Phase 2 Task 1: list_inhibitors() (implementation, closed)
+
+- Added the logind read path to `sodamint.py`: `Inhibitor` namedtuple
+  `(what, who, why, mode, uid, pid)`, `list_inhibitors()` (public), and helpers
+  `_list_inhibitors_dbus()` (primary: `login1 ListInhibitors` via Gio system
+  bus, reply `(a(ssssuu))`), `_list_inhibitors_fallback()` (scrape
+  `systemd-inhibit --list --no-pager`, parsed by header column offsets so
+  multi-word WHO/WHY survive), `_keeps_awake()` (D12: keep rows whose `what`
+  contains `idle`/`sleep`).
+- Never raises: D-Bus error funnels to the fallback; fallback failure funnels to
+  `[]`. No new dependency (Gio ships with `python3-gi`). Read-only — no UI wiring
+  (deferred to task 2). Existing toggle/start/stop/_refresh untouched.
+- Verified on live logind (real Cinnamon session, 10 held inhibitors): filter
+  drops `shutdown`/`handle-lid-switch`/`handle-power-key`; a held
+  `--why=tl-verify` lock appears then disappears on kill; D-Bus and fallback
+  return the identical filtered set (parity); both-sources-fail → `[]`;
+  `py_compile` passes. Techlead re-verified closure independently.
+- Not committed: `.claude/settings.json` (unrelated hook-install infra; kept out
+  of the task commit).

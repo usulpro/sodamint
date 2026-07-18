@@ -48,11 +48,12 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
 
 - Phase status: todo
 
-- [ ] Kind: implementation | Status: todo | Read the live idle/sleep inhibitor list from logind via `login1 ListInhibitors` (Gio D-Bus), filtered per D12, with a `systemd-inhibit --list` parse fallback.
+- [x] Kind: implementation | Status: done | Read the live idle/sleep inhibitor list from logind via `login1 ListInhibitors` (Gio D-Bus), filtered per D12, with a `systemd-inhibit --list` parse fallback.
   - Outcome: Sodamint can enumerate every process keeping the machine awake, as structured `(what, who, why, mode, uid, pid)` records.
   - Surface: `sodamint.py` — new helper (e.g. `list_inhibitors()`); `Gio` system-bus call; filter + fallback.
   - Acceptance: Returns the same idle/sleep holders as `systemd-inhibit --list`; returns `[]` (not an exception) when there are none or the bus is unreachable; no new dependency added.
   - Docs: `docs/data-source.md`.
+  - Closed 2026-07-18: added `Inhibitor` namedtuple + `list_inhibitors()` (`_list_inhibitors_dbus` primary, `_list_inhibitors_fallback` column-offset parse, `_keeps_awake` D12 filter). Verified against live logind: 10 raw → filtered idle/sleep set, test lock appears/disappears, D-Bus/fallback parity, `[]` on both-sources-fail, no new dep. Commit-owned.
 - [ ] Kind: implementation | Status: todo | Drive the icon/status and a dynamic, read-only per-source menu from the inhibitor list; classify each row (agent `◆` / our own `★` / other `●`), group agents first under an `Agents`/`Other` header (D20), no age column (D19); poll on a `GLib.timeout` + on menu popup; rebuild the menu for both backends.
   - Outcome: The tray shows read-only rows (why/who/pid, no age) with agent sources (`who==sodamint-agent`) grouped first and highlighted, and the icon is active iff ≥1 exists.
   - Surface: `sodamint.py` — `_refresh()` derives from the inhibitor list; row classification + grouping per `docs/data-source.md`/`docs/tray-ux.md`; `_build_menu()`/rebuild section; `GLib.timeout_add_seconds`; AppIndicator `set_menu()` + StatusIcon `self._menu`.
