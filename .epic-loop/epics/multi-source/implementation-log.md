@@ -176,3 +176,25 @@
   carried into the task-2 brief: wrap `start()` in try/finally `stop()` and allow
   a settle before asserting the async `★` row.
 - Not committed: `.claude/settings.json` (unrelated hook-install infra).
+
+## 2026-07-18 - Phase 3 Task 2: toggle regression + quit isolation (verification, closed) — PHASE 3 COMPLETE
+
+- In-process verification with real GLib/Gtk loops; every start() wrapped in
+  try/finally stop(); _refresh() called post-settle to mirror a poll after
+  logind's async registration.
+- All 6 criteria PASS on both AppIndicator and StatusIcon backends:
+  1. Toggle parity: 3 on/off cycles per backend, our lock pid appears/disappears
+     in list_inhibitors() each cycle, no residue.
+  2. UI tracking: on → is_on/checkbox/★(at self.proc.pid)/active-icon/Quit
+     "Disable and quit"; off → the inverse.
+  3. External death: os.kill(SIGTERM) → UI resets via _on_child_exit, no warning.
+  4. Quit isolation via the REAL quit() (stop()+Gtk.main_quit() inside Gtk.main()):
+     our lock dropped, external `sodamint-agent · p3 quit-iso` lock survived.
+  5. Both backends exercised (criterion 4 shown on AppIndicator).
+  6. No `waitid` warning across all cycles.
+- No product code changed; no defects. Test inhibitors cleaned up; no stray
+  `sleep infinity`; no app process left running.
+- Design note (not a defect): after a manual toggle-on the ★ row lands on the
+  next poll (≤POLL_SECONDS) because logind registration is async; icon/checkbox/
+  Quit-label update instantly from is_on().
+- **Phase 3 (Manual Toggle & Quit) is complete.**

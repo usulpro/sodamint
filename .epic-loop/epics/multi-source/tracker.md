@@ -69,7 +69,7 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
 
 ### Phase 3: Manual Toggle & Quit
 
-- Phase status: todo
+- Phase status: done (2026-07-18 — dynamic Quit label + child-reap fix; toggle regression-safety & quit isolation verified on both backends)
 
 - [x] Kind: implementation | Status: done | Reconcile the manual toggle with the new model: it holds our own inhibitor (unchanged `start`/`stop`/`is_on`), shows as its own `★` row, and the Quit item's label is dynamic — `Quit` when off, `Disable and quit` when on (D21), updated in `_refresh()`; no confirmation dialog. No behavior change to the existing lock/unlock path.
   - Outcome: The classic one-click keep-awake still works exactly as today and is consistent with the dashboard; quitting never silently sleeps a machine held by others, and the Quit label states whether it will drop our lock.
@@ -77,11 +77,12 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
   - Acceptance: Toggle on → machine held + our `★` row + active icon + Quit label reads `Disable and quit`; toggle off → lock released, row gone, Quit label reads `Quit`; external death of our subprocess still resets state and the label (existing `_on_child_exit` → `_refresh()`); quitting drops only our lock and leaves external rows (verified via `--list` after quit).
   - Docs: `docs/tray-ux.md`, `docs/data-source.md`.
   - Closed 2026-07-18: `_build_menu` computes the Quit label from `on` (no dialog; delivered via the existing `on`-keyed rebuild). Also fixed the pre-existing `waitid: No child processes` warning — `start` stores the child-watch source id, `stop` `GLib.source_remove()`s it before reaping, `_on_child_exit` clears it; lock/unlock semantics unchanged. Verified: label off/on/off; no warning on stderr; external SIGTERM still resets UI via `_on_child_exit`; quit isolation (`stop()` drops only our lock, external `p3-ext-survive` survives). `★`/checkbox tracking still holds (Phase 2). Full both-backends regression is task 2.
-- [ ] Kind: verification | Status: todo | Confirm the manual toggle is a strict regression-safe superset of today's behavior, plus quit isolation, on both backends.
+- [x] Kind: verification | Status: done | Confirm the manual toggle is a strict regression-safe superset of today's behavior, plus quit isolation, on both backends.
   - Outcome: Verified that existing manual keep-awake did not regress and quit never drops a lock we do not own.
   - Surface: run the app; toggle on/off repeatedly and confirm the inhibitor via `systemd-inhibit --list`; kill our subprocess externally and confirm the UI recovers; with an external agent lock present, quit and re-check `--list`.
   - Acceptance: Lock appears/disappears with the toggle exactly as before the epic; external subprocess death resets the checkbox/icon; after quit-with-external-source-present the external inhibitor is still listed.
   - Docs: `docs/tray-ux.md`.
+  - Closed 2026-07-18: all 6 criteria PASS on **both** backends — 3× on/off cycles with `--list` parity; UI (`is_on`/checkbox/`★`/icon/Quit-label) tracks each cycle; external SIGTERM resets the UI via `_on_child_exit`; quit via the **real** `quit()` path (inside `Gtk.main()`) dropped only our lock while an external `sodamint-agent · p3 quit-iso` lock survived; no `waitid` warning across all cycles. No product code changed; test inhibitors cleaned up. Note (design, not a defect): after a manual toggle-on the `★` row lands on the next poll (≤POLL_SECONDS) since logind registration is async, while icon/checkbox/Quit-label update instantly from `is_on()`.
 
 ### Phase 4: Docs & End-to-End
 
