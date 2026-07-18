@@ -220,3 +220,25 @@
   documented one-liner run verbatim → `list_inhibitors()` shows it and
   `_classify(..., None) == 'agent'` (glyph `◆`). Test lock cleaned up.
 - Not committed: `.claude/settings.json` (unrelated infra).
+
+## 2026-07-18 - Phase 4 Task 2: whole-feature E2E (verification, closed) — PHASE 4 COMPLETE
+
+- In-process AppIndicator run with a real Gtk.main() loop; two agent inhibitors
+  spawned via subprocess.Popen using the AGENTS.md one-liner form (exact pids);
+  POLL_SECONDS=4.
+- All 4 steps PASS:
+  1. 2 agents + manual ON → `Awake — 10 sources`, two `◆` rows grouped first, one
+     `★` (this) row; both agents confirmed in logind.
+  2. Toggle OFF → `★` gone + our lock released; both `◆` remain; still active.
+  3. External SIGTERM of agent A → its `◆` disappears within a poll (logind
+     auto-cleanup, no code of ours); agent B remains.
+  4. Real quit() (Gtk.main_quit) → agent B still held in logind, our lock gone —
+     quitting does not sleep a machine an agent is still holding.
+- No `waitid` warning; no product code changed; all test locks cleaned up.
+- Process-hygiene lesson: two pre-run harness attempts used shell
+  `pgrep -f "p4e2e"` which self-matched the running shell and SIGTERM'd the
+  script (exit 144), briefly orphaning agent locks (cleaned by extracting exact
+  pids via list_inhibitors()). Rewrote to spawn/clean agents entirely in Python
+  with a finally. Never `pgrep -f <token>` when the driver command contains it.
+- **Phase 4 (Docs & End-to-End) is complete.** The reshaped desired outcome is
+  proven end-to-end.

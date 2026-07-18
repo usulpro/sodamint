@@ -86,7 +86,7 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
 
 ### Phase 4: Docs & End-to-End
 
-- Phase status: todo
+- Phase status: done (2026-07-18 — repo docs aligned to the dashboard model; whole-feature E2E passed against the reshaped desired outcome)
 
 - [x] Kind: implementation | Status: done | Update `CLAUDE.md` to the reshaped model (dashboard over logind; `self.proc` is source of truth only for our own lock — D17) and point agents at the integration contract; surface the contract in repo-level docs (e.g. an `AGENTS.md` or README section) copied from `docs/agent-integration.md`; refresh `install.sh` if needed.
   - Outcome: Repo docs match the shipped behavior; agents have a copy-paste, highlighted keep-awake pattern in project documentation.
@@ -94,11 +94,12 @@ Epic: Inhibitor Dashboard For Sodamint (slug `multi-source`)
   - Acceptance: `CLAUDE.md` no longer claims `self.proc` is the *only* source of truth and describes the dashboard; the `--who=sodamint-agent` contract is documented at repo level and, when followed, produces a highlighted row.
   - Docs: `docs/problem-framing.md`, `docs/data-source.md`, `docs/agent-integration.md`.
   - Closed 2026-07-18: `CLAUDE.md` reworked to the dashboard model (self.proc = own-lock source of truth only; icon active iff any source; `_refresh()` from `list_inhibitors()`; grouped `◆`/`★`/`●` rows; dynamic Quit; rebuild-not-mutate; set-before-connect checkbox guard replacing the removed `handler_block_by_func`; child-watch removed in `stop()`). New repo-root `AGENTS.md` surfaces the `--who=sodamint-agent` contract (copy-paste one-liner + field table). `install.sh` confirmed unchanged (same single file, icons, desktop, deps). Verified: every corrected CLAUDE.md claim backed by code; marker string lockstep with `AGENT_WHO`; the documented one-liner run verbatim classifies as `agent`/`◆`.
-- [ ] Kind: verification | Status: todo | Whole-feature run mimicking the real workload: two parallel agent inhibitors (`--who=sodamint-agent`) plus the manual toggle; toggle off; externally kill one agent; quit.
+- [x] Kind: verification | Status: done | Whole-feature run mimicking the real workload: two parallel agent inhibitors (`--who=sodamint-agent`) plus the manual toggle; toggle off; externally kill one agent; quit.
   - Outcome: End-to-end proof against the reshaped desired outcome.
   - Surface: live app + two `systemd-inhibit --what=idle:sleep --who=sodamint-agent --why=… -- sleep 600` + manual toggle + `systemd-inhibit --list`.
   - Acceptance: All three show as rows (two highlighted `◆`, one `★`); icon active; toggling the manual lock off drops only our row; externally killing an agent removes its row within a poll (logind auto-cleanup, no code of ours); quitting leaves the surviving external agents holding the machine awake.
   - Docs: `docs/problem-framing.md`, `docs/agent-integration.md`.
+  - Closed 2026-07-18: in-process AppIndicator run with a real `Gtk.main()` loop, agents spawned via the `AGENTS.md` one-liner form. All 4 steps PASS — step1: 2× `◆` (grouped first) + 1× `★` + `Awake — 10 sources`; step2: toggle off drops only our `★`, both `◆` remain, our lock released; step3: external kill of agent A → its `◆` gone within a poll (logind auto-cleanup), B remains; step4: real `quit()` → agent B still held in logind, our lock gone. No `waitid` warning; no product code changed; test locks cleaned up.
 
 ### Phase 5: Packaging & Distribution
 
