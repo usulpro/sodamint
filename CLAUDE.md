@@ -64,8 +64,9 @@ and the only lock we release is our own. See the epic docs under
   `_partition_inhibitors()` into three buckets: our own lock (`★`, matched by
   `self.proc.pid`) as its **own distinct row**, agent sources (`◆`,
   `who == "sodamint-agent"`) under an `Agents` header, and everything else (`●`)
-  under a **collapsible `System ▸/▾ (k)`** item (`self._system_expanded`, toggled
-  by `_on_toggle_system`). It also drives the checkbox (from `is_on()`) and the
+  in a native **`System (k)` submenu** (a flyout, since tray menus close on item
+  activation and can't do an in-place accordion). It also drives the checkbox
+  (from `is_on()`) and the
   **dynamic Quit label** (`Disable and quit` when our lock is on, else `Quit`).
   Source rows are inert (no per-source action — D14). Refreshes run on a
   `GLib.timeout_add_seconds(POLL_SECONDS, …)` poll and on StatusIcon popup

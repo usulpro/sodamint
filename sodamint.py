@@ -185,7 +185,6 @@ class Sodamint:
         self._child_watch = None  # GLib child-watch source id for self.proc
         self._menu = None
         self._last_sig = None  # last rendered menu signature (skip no-op rebuilds)
-        self._system_expanded = False  # is the collapsible System section open?
 
         if AppIndicator is not None:
             self.indicator = AppIndicator.Indicator.new(
@@ -244,19 +243,17 @@ class Sodamint:
                 menu.append(row)
             menu.append(Gtk.SeparatorMenuItem())
 
-        # System sources, collapsed behind a clickable "System" toggle. Clicking
-        # it flips self._system_expanded and repaints (no submenu popup); the
-        # count stays visible even while collapsed.
+        # System sources, tucked into a native submenu so they don't clutter the
+        # top level. The count shows on the parent; the rows open as a flyout.
         if system:
-            arrow = "▾" if self._system_expanded else "▸"  # ▾ / ▸
-            toggle = Gtk.MenuItem(label=f"System  {arrow}  ({len(system)})")
-            toggle.connect("activate", self._on_toggle_system)
-            menu.append(toggle)
-            if self._system_expanded:
-                for glyph, text in system:
-                    row = Gtk.MenuItem(label=f"    {glyph} {text}")
-                    row.set_sensitive(False)  # read-only label — inert (D14)
-                    menu.append(row)
+            sysroot = Gtk.MenuItem(label=f"System  ({len(system)})")
+            submenu = Gtk.Menu()
+            for glyph, text in system:
+                row = Gtk.MenuItem(label=f"{glyph} {text}")
+                row.set_sensitive(False)  # read-only label — inert (D14)
+                submenu.append(row)
+            sysroot.set_submenu(submenu)
+            menu.append(sysroot)
             menu.append(Gtk.SeparatorMenuItem())
 
         # Manual toggle — set the state BEFORE connecting the handler so the
@@ -282,14 +279,6 @@ class Sodamint:
         self._menu = menu
         if self.indicator is not None:
             self.indicator.set_menu(menu)
-
-    def _on_toggle_system(self, _item):
-        # Expand/collapse the System section in place, then repaint. (The tray
-        # may close the menu on click depending on the backend; the state is
-        # remembered so it reopens in the chosen state.)
-        self._system_expanded = not self._system_expanded
-        self._last_sig = None  # force a rebuild
-        self._refresh()
 
     def _on_popup(self, icon, button, time):
         self._refresh()  # show fresh data the moment the user opens the tray
@@ -380,11 +369,9 @@ class Sodamint:
             self.status_icon.set_from_icon_name(icon)
             self.status_icon.set_tooltip_text(f"Sodamint — {status}")
 
-        # Rebuild the menu only when the rendered content changed (including the
-        # System expand/collapse state), so a poll that finds nothing new does
-        # not close an open menu or flicker.
-        sig = (on, status, self._system_expanded,
-               tuple(agents), own, tuple(system))
+        # Rebuild the menu only when the rendered content changed, so a poll
+        # that finds nothing new does not close an open menu or flicker.
+        sig = (on, status, tuple(agents), own, tuple(system))
         if sig != self._last_sig:
             self._last_sig = sig
             self._apply_menu(self._build_menu(status, agents, own, system, on))

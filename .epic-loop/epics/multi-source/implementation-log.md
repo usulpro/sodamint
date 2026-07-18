@@ -345,3 +345,13 @@
   collapsed, toggle flips); StatusIcon backend builds + toggles; py_compile OK.
 - Docs updated: `docs/tray-ux.md` layout + glyph section, `CLAUDE.md` `_refresh`
   bullet. Refines D20 (own row no longer under a group; agents still grouped).
+
+## 2026-07-19 - UI follow-up: System as a native submenu (accordion reverted)
+
+- The in-place collapsible closed the tray menu on click (AppIndicator: the
+  panel controls activation), forcing a reopen — poor UX. Per user choice,
+  replaced it with a native `System (k)` **submenu** (flyout that stays open);
+  removed `self._system_expanded` / `_on_toggle_system`. Own `★` row and the
+  `Agents` group are unchanged. Verified live: top level compact, `●` rows inside
+  the submenu, own `★` standalone; both backends build; py_compile OK.
+- Docs updated: `docs/tray-ux.md`, `CLAUDE.md`.

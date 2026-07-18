@@ -33,9 +33,11 @@ a truthful "is anything keeping this machine awake?" light.
 │ ◆ epic-loop · sodamint · Phase 2 · pid 48213│   agent source
 │ ◆ nightly-build · sodamint · pid 49780      │
 ├────────────────────────────────────────────┤
-│ System  ▸  (2)                              │   collapsible — click to expand
-│     ● GNOME Shell · pid 2210    (when open) │   system source, indented
-│     ● NetworkManager · pid 933  (when open) │
+│ System  (2)                         ▸       │   submenu → opens a flyout:
+│                              ┌──────────────────────────────┐
+│                              │ ● GNOME Shell · pid 2210     │
+│                              │ ● NetworkManager · pid 933   │
+│                              └──────────────────────────────┘
 ├────────────────────────────────────────────┤
 │ ☑ Keep awake (manual)                       │   manual toggle (checkbox)
 ├────────────────────────────────────────────┤
@@ -51,13 +53,13 @@ a truthful "is anything keeping this machine awake?" light.
   so it is obvious which lock is ours to drop.
 - **Agents** — agent sources (`who == sodamint-agent`) under an insensitive
   `Agents` header (D20). Shown only when non-empty.
-- **System (collapsible)** — all other (non-agent, non-ours) inhibitors live
-  under a **clickable** `System  ▸  (k)` item. Clicking it flips the section
-  open (`System  ▾`) / closed and repaints in place — **not** a submenu flyout.
-  The `(k)` count stays visible while collapsed; the `●` rows appear indented
-  only when expanded. Shown only when there is at least one such source. Note:
-  depending on the tray backend the panel may close the menu on click; the
-  expand/collapse state is remembered, so reopening shows the chosen state.
+- **System (submenu)** — all other (non-agent, non-ours) inhibitors live in a
+  native **submenu** under a `System  (k)` item; hovering/clicking it opens a
+  flyout with the `●` rows, keeping the top level compact. The `(k)` count shows
+  on the parent. A submenu is used rather than an in-place collapse because tray
+  menus close on item activation (the panel controls this for AppIndicator), so
+  an accordion would force a reopen; a submenu flyout stays open natively. Shown
+  only when there is at least one such source.
 - **One row per inhibitor** — a marker glyph, the `why` string (falling back to
   `who` when empty), and the pid. **No age column** (D19). Source rows are
   **read-only labels** — no per-source release (D14). Glyphs:
