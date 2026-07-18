@@ -128,9 +128,60 @@ def list_inhibitors():
     return [r for r in rows if _keeps_awake(r.what)]
 
 
+# Row-type glyphs shown in the tray (docs/tray-ux.md).
+GLYPH = {"agent": "◆", "own": "★", "other": "●"}
+AGENT_WHO = "sodamint-agent"  # the marker (docs/agent-integration.md); lockstep
+
+
+def _classify(inh, own_pid):
+    """Row type for an inhibitor: 'agent', 'own', or 'other' (docs/data-source.md)."""
+    if inh.who == AGENT_WHO:
+        return "agent"
+    if own_pid is not None and inh.pid == own_pid:
+        return "own"
+    return "other"
+
+
+def _row_label(inh, own=False):
+    """Human row text: the `why` (falling back to `who`) plus pid; no age (D19)."""
+    base = inh.why.strip() if (inh.why and inh.why.strip()) else inh.who
+    marker = " (this)" if own else ""
+    return f"{base}{marker} · pid {inh.pid}"
+
+
+def _group_inhibitors(inhibitors, own_pid):
+    """Ordered grouping for rendering: agents first, then everything else (D20).
+
+    Pure — returns ``[(header, [(glyph, text), ...]), ...]`` with empty groups
+    omitted, so it can be verified without a display.
+    """
+    agents, others = [], []
+    for inh in inhibitors:
+        kind = _classify(inh, own_pid)
+        row = (GLYPH[kind], _row_label(inh, own=(kind == "own")))
+        (agents if kind == "agent" else others).append(row)
+    groups = []
+    if agents:
+        groups.append(("Agents", agents))
+    if others:
+        groups.append(("Other", others))
+    return groups
+
+
+def _status_text(n):
+    """Status-header text for N idle/sleep sources."""
+    if n == 0:
+        return "Idle"
+    return f"Awake — {n} source" + ("" if n == 1 else "s")
+
+
 class Sodamint:
+    POLL_SECONDS = 4  # how often to re-read logind's inhibitor list
+
     def __init__(self):
         self.proc = None  # the systemd-inhibit subprocess, or None when off
+        self._menu = None
+        self._last_sig = None  # last rendered menu signature (skip no-op rebuilds)
 
         if AppIndicator is not None:
             self.indicator = AppIndicator.Indicator.new(
@@ -140,31 +191,51 @@ class Sodamint:
             )
             self.indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
             self.indicator.set_title("Sodamint")
-            self.indicator.set_menu(self._build_menu())
         else:
             # Fallback: legacy GtkStatusIcon (works even without AppIndicator).
             self.indicator = None
             self.status_icon = Gtk.StatusIcon()
             self.status_icon.set_from_icon_name(ICON_INACTIVE)
-            self.status_icon.set_tooltip_text("Sodamint — off")
+            self.status_icon.set_tooltip_text("Sodamint")
             self.status_icon.connect("activate", lambda _i: self.toggle())
             self.status_icon.connect("popup-menu", self._on_popup)
-            self._menu = self._build_menu()
+
+        # Build the initial menu/icon from the live list and poll for changes.
+        self._refresh()
+        GLib.timeout_add_seconds(self.POLL_SECONDS, self._on_poll)
+
+    def _on_poll(self):
+        self._refresh()
+        return True  # keep the timer alive
 
     # ---- menu ---------------------------------------------------------------
-    def _build_menu(self):
+    def _build_menu(self, status, groups, on):
+        """Build the whole dynamic menu: status header, grouped read-only rows,
+        the manual checkbox, and Quit. Rebuilt on every content change because
+        AppIndicator menus are static once set (docs/tray-ux.md)."""
         menu = Gtk.Menu()
 
-        self.item_toggle = Gtk.CheckMenuItem(label="Keep awake")
-        self.item_toggle.set_active(False)
-        self.item_toggle.connect("toggled", self._on_toggle_item)
-        menu.append(self.item_toggle)
-
+        header = Gtk.MenuItem(label=status)
+        header.set_sensitive(False)
+        menu.append(header)
         menu.append(Gtk.SeparatorMenuItem())
 
-        self.item_status = Gtk.MenuItem(label="Status: off")
-        self.item_status.set_sensitive(False)
-        menu.append(self.item_status)
+        for group_name, rows in groups:
+            gh = Gtk.MenuItem(label=group_name)
+            gh.set_sensitive(False)
+            menu.append(gh)
+            for glyph, text in rows:
+                row = Gtk.MenuItem(label=f"{glyph} {text}")
+                row.set_sensitive(False)  # read-only label — inert (D14)
+                menu.append(row)
+            menu.append(Gtk.SeparatorMenuItem())
+
+        # Manual toggle — set the state BEFORE connecting the handler so the
+        # programmatic set_active never re-triggers start()/stop() (guard).
+        self.item_toggle = Gtk.CheckMenuItem(label="Keep awake (manual)")
+        self.item_toggle.set_active(on)
+        self.item_toggle.connect("toggled", self._on_toggle_item)
+        menu.append(self.item_toggle)
 
         menu.append(Gtk.SeparatorMenuItem())
 
@@ -175,7 +246,13 @@ class Sodamint:
         menu.show_all()
         return menu
 
+    def _apply_menu(self, menu):
+        self._menu = menu
+        if self.indicator is not None:
+            self.indicator.set_menu(menu)
+
     def _on_popup(self, icon, button, time):
+        self._refresh()  # show fresh data the moment the user opens the tray
         self._menu.popup(None, None, Gtk.StatusIcon.position_menu,
                          icon, button, time)
 
@@ -237,22 +314,30 @@ class Sodamint:
 
     # ---- ui state -----------------------------------------------------------
     def _refresh(self):
+        """Single repaint point: derive icon, status, and rows from the live
+        logind inhibitor list. The icon is active iff ANY source exists (D13);
+        the checkbox still reflects only our own lock."""
+        inhibitors = list_inhibitors()
         on = self.is_on()
-        icon = ICON_ACTIVE if on else ICON_INACTIVE
-        label = "on" if on else "off"
+        own_pid = self.proc.pid if on else None
+        groups = _group_inhibitors(inhibitors, own_pid)
+        n = len(inhibitors)
+        status = _status_text(n)
+        icon = ICON_ACTIVE if n >= 1 else ICON_INACTIVE
 
-        if getattr(self, "item_toggle", None) is not None:
-            self.item_toggle.handler_block_by_func(self._on_toggle_item)
-            self.item_toggle.set_active(on)
-            self.item_toggle.handler_unblock_by_func(self._on_toggle_item)
-        if getattr(self, "item_status", None) is not None:
-            self.item_status.set_label(f"Status: {label}")
-
+        # Icon + tooltip are idempotent and cheap — always set.
         if self.indicator is not None:
-            self.indicator.set_icon_full(icon, f"Sodamint {label}")
+            self.indicator.set_icon_full(icon, status)
         else:
             self.status_icon.set_from_icon_name(icon)
-            self.status_icon.set_tooltip_text(f"Sodamint — {label}")
+            self.status_icon.set_tooltip_text(f"Sodamint — {status}")
+
+        # Rebuild the menu only when the rendered content changed, so a poll
+        # that finds nothing new does not close an open menu or flicker.
+        sig = (on, status, tuple((name, tuple(rows)) for name, rows in groups))
+        if sig != self._last_sig:
+            self._last_sig = sig
+            self._apply_menu(self._build_menu(status, groups, on))
 
     def _error(self, msg):
         dialog = Gtk.MessageDialog(

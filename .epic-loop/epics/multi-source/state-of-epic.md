@@ -5,7 +5,7 @@ Slug: `multi-source`
 Created: 2026-07-14T10:21:11+00:00
 Mode: implementation
 Active phase: Phase 2 - Read & Render Inhibitors (in progress)
-Active task: Phase 2 task 1 (list_inhibitors) done → next: task 2 (render menu/icon from the list)
+Active task: Phase 2 tasks 1-2 (read + render) done → next: task 3 (phase verification: live both-backends render/icon/highlight)
 
 ## Current State
 

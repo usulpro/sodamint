@@ -100,3 +100,32 @@
   `py_compile` passes. Techlead re-verified closure independently.
 - Not committed: `.claude/settings.json` (unrelated hook-install infra; kept out
   of the task commit).
+
+## 2026-07-18 - Phase 2 Task 2: render the inhibitor dashboard (implementation, closed)
+
+- `sodamint.py`: added pure helpers `_classify` (agent/own/other), `_row_label`
+  (why→who fallback, `· pid N`, optional `(this)`, no age D19),
+  `_group_inhibitors` (agents-first grouping, empty groups omitted),
+  `_status_text`, plus `GLYPH` and `AGENT_WHO` constants.
+- `_refresh()` is now the single repaint from `list_inhibitors()`: icon active
+  iff ≥1 source from ANY process (D13); status header `Awake — N source(s)` /
+  `Idle`; grouped read-only (`set_sensitive(False)`, inert D14) menu rebuilt via
+  `_build_menu(status, groups, on)` + `_apply_menu()` (AppIndicator `set_menu()`
+  / StatusIcon `self._menu`). A change-signature guard skips no-op rebuilds so a
+  poll that finds nothing new does not flicker/close an open menu.
+- Refresh triggers: `GLib.timeout_add_seconds(POLL_SECONDS=4, ...)` + `_refresh()`
+  on StatusIcon popup. Checkbox state is set BEFORE connecting `toggled`, so the
+  feedback guard survives every rebuild (no double start/stop).
+- Out of scope kept out: Quit stays static (dynamic label is Phase 3);
+  `start`/`stop`/`is_on`/`toggle`/`_on_toggle_item`/`_on_child_exit` unchanged
+  (diff shows only `_refresh` reads `self.proc.pid`).
+- Verified: unit helper suite (classify/glyph/label/grouping/header-omission/
+  status); live AppIndicator render on the real session (`Awake — 9 sources`,
+  agent `◆` grouped first, `●` others incl. a held external lock); StatusIcon
+  fallback construct + inert rows + Idle state + no-double-trigger guard; real
+  own-lock `★` with pid == `self.proc.pid` appearing then disappearing on
+  start/stop. `py_compile` passes; no new dependency.
+- Follow-up recorded in risk-register: pre-existing `waitid: No child processes`
+  GLib warning from `child_watch_add` + `stop()`'s `wait()` — to reconcile in
+  Phase 3, not this task.
+- Not committed: `.claude/settings.json` (unrelated hook-install infra).
