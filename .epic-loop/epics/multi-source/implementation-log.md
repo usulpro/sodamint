@@ -330,3 +330,18 @@
   Architecture:all `.deb` verified installing on a clean Ubuntu 24.04, a
   README/GitHub-Release path, and PPA + Flatpak how-tos). Next: implementation-end
   housekeeping, then the loop goes idle.
+
+## 2026-07-18 - Post-epic UI refinement: distinct own row + collapsible System
+
+- User-requested tray change (loop idle): renamed the `Other` group to a
+  collapsible **`System ▸/▾ (k)`** section that hides its `●` rows until clicked
+  (`self._system_expanded`, `_on_toggle_system`; in-place repaint, not a submenu
+  flyout — note: some tray backends close the menu on click, state is
+  remembered). Our own `★` lock is now pulled out of that list and shown as its
+  own distinct standalone row. `_group_inhibitors` → `_partition_inhibitors`
+  (returns `agents, own, system`).
+- Verified: partition unit test; live AppIndicator menu (collapsed hides `●`,
+  expanded shows indented rows, own `★` standalone, count visible while
+  collapsed, toggle flips); StatusIcon backend builds + toggles; py_compile OK.
+- Docs updated: `docs/tray-ux.md` layout + glyph section, `CLAUDE.md` `_refresh`
+  bullet. Refines D20 (own row no longer under a group; agents still grouped).

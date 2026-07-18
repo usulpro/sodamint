@@ -27,13 +27,15 @@ a truthful "is anything keeping this machine awake?" light.
 ┌────────────────────────────────────────────┐
 │ Awake — 3 sources                     (hdr) │   status header, insensitive
 ├────────────────────────────────────────────┤
+│ ★ Sodamint keep-awake (this) · pid 5591     │   our own lock — distinct row
+├────────────────────────────────────────────┤
 │ Agents                                (hdr) │   group header, insensitive
-│ ◆ epic-loop · sodamint · Phase 2 · pid 48213│   agent source (grouped first)
+│ ◆ epic-loop · sodamint · Phase 2 · pid 48213│   agent source
 │ ◆ nightly-build · sodamint · pid 49780      │
 ├────────────────────────────────────────────┤
-│ Other                                 (hdr) │   group header, insensitive
-│ ★ Sodamint keep-awake (this) · pid 5591     │   our own manual lock
-│ ● GNOME Shell · pid 2210                    │   plain external source
+│ System  ▸  (2)                              │   collapsible — click to expand
+│     ● GNOME Shell · pid 2210    (when open) │   system source, indented
+│     ● NetworkManager · pid 933  (when open) │
 ├────────────────────────────────────────────┤
 │ ☑ Keep awake (manual)                       │   manual toggle (checkbox)
 ├────────────────────────────────────────────┤
@@ -42,20 +44,27 @@ a truthful "is anything keeping this machine awake?" light.
 ```
 
 - **Status header** — `Awake — N sources` or `Idle` when empty. Insensitive
-  (label only), same role as today's `Status: on/off`.
-- **Grouping (D20)** — agent sources (`who == sodamint-agent`) are listed
-  **first**, under an insensitive `Agents` header; all other rows (our own lock
-  and arbitrary system inhibitors) follow under an `Other` header. A header is
-  shown only when its group is non-empty; with no sources at all, neither header
-  nor rows appear (just `Idle`).
+  (label only). The count is always the full total, even while System is
+  collapsed.
+- **Our own lock is its own row** — when the manual toggle is on, our `★` lock
+  is shown as a standalone, visually distinct row (never inside the System list),
+  so it is obvious which lock is ours to drop.
+- **Agents** — agent sources (`who == sodamint-agent`) under an insensitive
+  `Agents` header (D20). Shown only when non-empty.
+- **System (collapsible)** — all other (non-agent, non-ours) inhibitors live
+  under a **clickable** `System  ▸  (k)` item. Clicking it flips the section
+  open (`System  ▾`) / closed and repaints in place — **not** a submenu flyout.
+  The `(k)` count stays visible while collapsed; the `●` rows appear indented
+  only when expanded. Shown only when there is at least one such source. Note:
+  depending on the tray backend the panel may close the menu on click; the
+  expand/collapse state is remembered, so reopening shows the chosen state.
 - **One row per inhibitor** — a marker glyph, the `why` string (falling back to
-  `who` when empty), and the pid. **No age column** (D19). Rows are **read-only
-  labels** — clicking a source does nothing; there is no per-source release
-  (D14). The row exists to answer "who is holding the machine awake." Glyphs:
+  `who` when empty), and the pid. **No age column** (D19). Source rows are
+  **read-only labels** — no per-source release (D14). Glyphs:
   - `◆` **agent source** — `who == sodamint-agent` (see
-    [`agent-integration.md`](agent-integration.md)); grouped first.
-  - `★` **our own manual lock** — pid matches `self.proc`.
-  - `●` **any other inhibitor** — arbitrary system/app source.
+    [`agent-integration.md`](agent-integration.md)); grouped under `Agents`.
+  - `★` **our own manual lock** — pid matches `self.proc`; its own distinct row.
+  - `●` **any other inhibitor** — arbitrary system/app source; under `System`.
 - **Keep awake (manual)** — the classic checkbox, the **only control** in the
   menu. Checking it starts our own `systemd-inhibit … sleep infinity` subprocess
   (today's `start()`); unchecking terminates it (`stop()`). This is unchanged

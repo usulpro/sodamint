@@ -149,23 +149,25 @@ def _row_label(inh, own=False):
     return f"{base}{marker} · pid {inh.pid}"
 
 
-def _group_inhibitors(inhibitors, own_pid):
-    """Ordered grouping for rendering: agents first, then everything else (D20).
+def _partition_inhibitors(inhibitors, own_pid):
+    """Split inhibitors for rendering: agent rows, our own row, and system rows.
 
-    Pure — returns ``[(header, [(glyph, text), ...]), ...]`` with empty groups
-    omitted, so it can be verified without a display.
+    Pure — returns ``(agents, own, system)`` where ``agents`` / ``system`` are
+    ``[(glyph, text), ...]`` and ``own`` is a single ``(glyph, text)`` or None.
+    Our own lock is kept out of the system list so it can be shown as its own
+    distinct row; system rows are what the collapsible "System" section holds.
     """
-    agents, others = [], []
+    agents, system, own = [], [], None
     for inh in inhibitors:
         kind = _classify(inh, own_pid)
         row = (GLYPH[kind], _row_label(inh, own=(kind == "own")))
-        (agents if kind == "agent" else others).append(row)
-    groups = []
-    if agents:
-        groups.append(("Agents", agents))
-    if others:
-        groups.append(("Other", others))
-    return groups
+        if kind == "agent":
+            agents.append(row)
+        elif kind == "own":
+            own = row
+        else:
+            system.append(row)
+    return agents, own, system
 
 
 def _status_text(n):
@@ -183,6 +185,7 @@ class Sodamint:
         self._child_watch = None  # GLib child-watch source id for self.proc
         self._menu = None
         self._last_sig = None  # last rendered menu signature (skip no-op rebuilds)
+        self._system_expanded = False  # is the collapsible System section open?
 
         if AppIndicator is not None:
             self.indicator = AppIndicator.Indicator.new(
@@ -210,9 +213,10 @@ class Sodamint:
         return True  # keep the timer alive
 
     # ---- menu ---------------------------------------------------------------
-    def _build_menu(self, status, groups, on):
-        """Build the whole dynamic menu: status header, grouped read-only rows,
-        the manual checkbox, and Quit. Rebuilt on every content change because
+    def _build_menu(self, status, agents, own, system, on):
+        """Build the whole dynamic menu: status header, our own keep-awake row
+        (shown distinctly), the agent rows, a collapsible System section, the
+        manual checkbox, and Quit. Rebuilt on every content change because
         AppIndicator menus are static once set (docs/tray-ux.md)."""
         menu = Gtk.Menu()
 
@@ -221,14 +225,38 @@ class Sodamint:
         menu.append(header)
         menu.append(Gtk.SeparatorMenuItem())
 
-        for group_name, rows in groups:
-            gh = Gtk.MenuItem(label=group_name)
+        # Our own lock — its own distinct row, never inside the System list.
+        if own is not None:
+            glyph, text = own
+            own_item = Gtk.MenuItem(label=f"{glyph} {text}")
+            own_item.set_sensitive(False)  # read-only label — inert (D14)
+            menu.append(own_item)
+            menu.append(Gtk.SeparatorMenuItem())
+
+        # Agent sources.
+        if agents:
+            gh = Gtk.MenuItem(label="Agents")
             gh.set_sensitive(False)
             menu.append(gh)
-            for glyph, text in rows:
+            for glyph, text in agents:
                 row = Gtk.MenuItem(label=f"{glyph} {text}")
                 row.set_sensitive(False)  # read-only label — inert (D14)
                 menu.append(row)
+            menu.append(Gtk.SeparatorMenuItem())
+
+        # System sources, collapsed behind a clickable "System" toggle. Clicking
+        # it flips self._system_expanded and repaints (no submenu popup); the
+        # count stays visible even while collapsed.
+        if system:
+            arrow = "▾" if self._system_expanded else "▸"  # ▾ / ▸
+            toggle = Gtk.MenuItem(label=f"System  {arrow}  ({len(system)})")
+            toggle.connect("activate", self._on_toggle_system)
+            menu.append(toggle)
+            if self._system_expanded:
+                for glyph, text in system:
+                    row = Gtk.MenuItem(label=f"    {glyph} {text}")
+                    row.set_sensitive(False)  # read-only label — inert (D14)
+                    menu.append(row)
             menu.append(Gtk.SeparatorMenuItem())
 
         # Manual toggle — set the state BEFORE connecting the handler so the
@@ -254,6 +282,14 @@ class Sodamint:
         self._menu = menu
         if self.indicator is not None:
             self.indicator.set_menu(menu)
+
+    def _on_toggle_system(self, _item):
+        # Expand/collapse the System section in place, then repaint. (The tray
+        # may close the menu on click depending on the backend; the state is
+        # remembered so it reopens in the chosen state.)
+        self._system_expanded = not self._system_expanded
+        self._last_sig = None  # force a rebuild
+        self._refresh()
 
     def _on_popup(self, icon, button, time):
         self._refresh()  # show fresh data the moment the user opens the tray
@@ -332,7 +368,7 @@ class Sodamint:
         inhibitors = list_inhibitors()
         on = self.is_on()
         own_pid = self.proc.pid if on else None
-        groups = _group_inhibitors(inhibitors, own_pid)
+        agents, own, system = _partition_inhibitors(inhibitors, own_pid)
         n = len(inhibitors)
         status = _status_text(n)
         icon = ICON_ACTIVE if n >= 1 else ICON_INACTIVE
@@ -344,12 +380,14 @@ class Sodamint:
             self.status_icon.set_from_icon_name(icon)
             self.status_icon.set_tooltip_text(f"Sodamint — {status}")
 
-        # Rebuild the menu only when the rendered content changed, so a poll
-        # that finds nothing new does not close an open menu or flicker.
-        sig = (on, status, tuple((name, tuple(rows)) for name, rows in groups))
+        # Rebuild the menu only when the rendered content changed (including the
+        # System expand/collapse state), so a poll that finds nothing new does
+        # not close an open menu or flicker.
+        sig = (on, status, self._system_expanded,
+               tuple(agents), own, tuple(system))
         if sig != self._last_sig:
             self._last_sig = sig
-            self._apply_menu(self._build_menu(status, groups, on))
+            self._apply_menu(self._build_menu(status, agents, own, system, on))
 
     def _error(self, msg):
         dialog = Gtk.MessageDialog(

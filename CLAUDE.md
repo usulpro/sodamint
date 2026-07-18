@@ -60,12 +60,14 @@ and the only lock we release is our own. See the epic docs under
   hoc.
 - **`_refresh()` repaints from `list_inhibitors()`, not `is_on()`.** It sets the
   icon from the source *count* (active iff ≥1), a status header
-  (`Awake — N sources` / `Idle`), and a grouped, read-only row per inhibitor —
-  agent sources (`◆`, `who == "sodamint-agent"`) first under an `Agents` header,
-  then our own manual lock (`★`, matched by `self.proc.pid`) and other holders
-  (`●`) under `Other`. It also drives the checkbox (from `is_on()`) and the
+  (`Awake — N sources` / `Idle`), and read-only rows partitioned by
+  `_partition_inhibitors()` into three buckets: our own lock (`★`, matched by
+  `self.proc.pid`) as its **own distinct row**, agent sources (`◆`,
+  `who == "sodamint-agent"`) under an `Agents` header, and everything else (`●`)
+  under a **collapsible `System ▸/▾ (k)`** item (`self._system_expanded`, toggled
+  by `_on_toggle_system`). It also drives the checkbox (from `is_on()`) and the
   **dynamic Quit label** (`Disable and quit` when our lock is on, else `Quit`).
-  Rows are inert (no per-source action — D14). Refreshes run on a
+  Source rows are inert (no per-source action — D14). Refreshes run on a
   `GLib.timeout_add_seconds(POLL_SECONDS, …)` poll and on StatusIcon popup
   (logind emits no inhibitor-changed signal).
 - **The menu is rebuilt, not mutated.** AppIndicator menus are static once set,
