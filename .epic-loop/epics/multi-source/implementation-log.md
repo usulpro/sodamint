@@ -198,3 +198,25 @@
   next poll (≤POLL_SECONDS) because logind registration is async; icon/checkbox/
   Quit-label update instantly from is_on().
 - **Phase 3 (Manual Toggle & Quit) is complete.**
+
+## 2026-07-18 - Phase 4 Task 1: repo docs aligned to the dashboard model (implementation, closed)
+
+- `CLAUDE.md`: reworked "What this is" + "How it works" (two non-obvious things:
+  our own lock is a subprocess AND the tray reflects logind) and the architecture
+  notes — `self.proc` is source of truth only for our own lock (D17); icon active
+  iff any source; `_refresh()` repaints from `list_inhibitors()`; grouped
+  `◆`/`★`/`●` read-only rows; dynamic Quit label; rebuild-not-mutate with the
+  change-signature guard; the checkbox guard is now set-before-connect (the old
+  `handler_block_by_func` is gone); `stop()` removes the child-watch source; agent
+  contract pointer. Dropped the stale "~200 lines".
+- New repo-root `AGENTS.md`: agent keep-awake contract surfaced from
+  `docs/agent-integration.md` — wrap one-liner, field table
+  (what/who/why/mode), explicit-hold variant + leak caveat, read-only/auto-release
+  notes, `AGENT_WHO` lockstep pointer.
+- `install.sh`: confirmed correct, no change (same single file, icons,
+  `sodamint.desktop`, and dep probe).
+- Verified: py_compile sanity OK (no code change); each corrected CLAUDE.md claim
+  cross-checked against `sodamint.py`; marker string matches `AGENT_WHO`; the
+  documented one-liner run verbatim → `list_inhibitors()` shows it and
+  `_classify(..., None) == 'agent'` (glyph `◆`). Test lock cleaned up.
+- Not committed: `.claude/settings.json` (unrelated infra).

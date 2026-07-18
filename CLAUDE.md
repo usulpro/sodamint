@@ -4,10 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Sodamint is a GTK3 system-tray toggle that keeps a Linux machine awake. It is a
+Sodamint is a GTK3 system-tray app that keeps a Linux machine awake **and**
+shows a live dashboard of everything currently holding it awake. It is a
 caffeine analog for Linux Mint / Kubuntu. The entire app is one file:
-`sodamint.py` (~200 lines). There is no build step, no test suite, no
-dependency manifest.
+`sodamint.py`. There is no build step, no test suite, no dependency manifest.
+
+The tray is a window onto systemd-logind's inhibitor registry: every idle/sleep
+source (who/why/pid) is listed read-only, agent-set sources are highlighted, and
+the one thing you can control is your own manual keep-awake toggle.
 
 ## Running & installing
 
@@ -22,39 +26,70 @@ Runtime dependencies (system packages, not pip):
 `python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1`, plus `systemd`.
 `install.sh check_deps()` probes for these and warns before installing.
 
-## How it works (the one non-obvious thing)
+## How it works (the two non-obvious things)
 
-Keep-awake is not done via xdg-screensaver/DPMS — that's exactly what the
-classic `caffeine` uses and what fails here. Instead `start()` spawns a
-long-lived subprocess:
+**1. Our own keep-awake is a subprocess, not DPMS.** Keep-awake is not done via
+xdg-screensaver/DPMS — that's exactly what the classic `caffeine` uses and what
+fails here. Instead `start()` spawns a long-lived subprocess:
 
 ```
 systemd-inhibit --what=idle:sleep --why=... --mode=block sleep infinity
 ```
 
 The running process *is* the lock. `stop()` releases it by `terminate()`-ing
-that subprocess. So `self.proc` (the `subprocess.Popen` handle) is the single
-source of truth for on/off state — `is_on()` checks `proc is not None and
-proc.poll() is None`, and everything else derives from it.
+that subprocess. So `self.proc` (the `subprocess.Popen` handle) is the source of
+truth **only for our own manual lock** — `is_on()` checks `proc is not None and
+proc.poll() is None`, and the checkbox derives from it.
+
+**2. The tray reflects logind, not just us.** `list_inhibitors()` reads the full
+idle/sleep inhibitor list from logind — `login1 ListInhibitors` over the system
+bus via `Gio` (primary), falling back to parsing `systemd-inhibit --list`, both
+filtered to holders that actually block idle/sleep (D12). The tray **icon is
+active whenever ANY source exists**, not just ours, so it is a truthful "is
+anything keeping this machine awake?" light. External sources are **read-only**
+(D14) — Sodamint never drops another process's lock; logind offers no API to,
+and the only lock we release is our own. See the epic docs under
+`.epic-loop/epics/multi-source/docs/` for the full design.
 
 ## Architecture notes
 
-- **One class, `Sodamint`.** Constructor picks the tray backend, `_build_menu()`
-  builds the GTK menu, the `start`/`stop`/`toggle`/`is_on` block manages the
-  inhibitor process, and `_refresh()` is the single place that repaints all UI
-  (icon, checkbox, status label) from `is_on()`. When adding UI state, update
-  `_refresh()` rather than mutating widgets ad hoc.
+- **One class, `Sodamint`.** Constructor picks the tray backend, the
+  `start`/`stop`/`toggle`/`is_on` block manages our own inhibitor process, and
+  `_refresh()` is the single place that repaints all UI from the live inhibitor
+  list. When adding UI state, update `_refresh()` rather than mutating widgets ad
+  hoc.
+- **`_refresh()` repaints from `list_inhibitors()`, not `is_on()`.** It sets the
+  icon from the source *count* (active iff ≥1), a status header
+  (`Awake — N sources` / `Idle`), and a grouped, read-only row per inhibitor —
+  agent sources (`◆`, `who == "sodamint-agent"`) first under an `Agents` header,
+  then our own manual lock (`★`, matched by `self.proc.pid`) and other holders
+  (`●`) under `Other`. It also drives the checkbox (from `is_on()`) and the
+  **dynamic Quit label** (`Disable and quit` when our lock is on, else `Quit`).
+  Rows are inert (no per-source action — D14). Refreshes run on a
+  `GLib.timeout_add_seconds(POLL_SECONDS, …)` poll and on StatusIcon popup
+  (logind emits no inhibitor-changed signal).
+- **The menu is rebuilt, not mutated.** AppIndicator menus are static once set,
+  so `_refresh()` rebuilds the whole menu via `_build_menu(status, groups, on)`
+  and re-applies it (`indicator.set_menu()` / `self._menu`). A change-signature
+  guard (`self._last_sig`) skips no-op rebuilds so polling doesn't flicker or
+  close an open menu.
 - **Two tray backends, chosen at runtime.** AppIndicator (Ayatana first, then
   legacy `AppIndicator3`) is preferred; if neither imports, it falls back to
   `Gtk.StatusIcon`. Any code touching the tray must handle both `self.indicator`
-  (AppIndicator path) and `self.status_icon` (fallback path) — see the branches
-  in `_refresh()`.
+  (AppIndicator path) and `self.status_icon` (fallback path).
 - **External death is handled.** `GLib.child_watch_add` → `_on_child_exit`
-  resets `self.proc` if the inhibitor is killed outside the app, so the UI stays
-  truthful. Preserve this if you touch process lifecycle.
-- **Checkbox feedback loop guard.** `_refresh()` blocks the `toggled` handler
-  (`handler_block_by_func`) while setting the checkbox, so programmatic updates
-  don't re-trigger `start()`/`stop()`.
+  resets `self.proc` if our inhibitor is killed outside the app, so the UI stays
+  truthful. `stop()` removes that watch source (`self._child_watch`) before
+  reaping so GLib doesn't `waitid()` an already-reaped pid. Preserve both if you
+  touch process lifecycle.
+- **Checkbox feedback loop guard.** Because the menu is rebuilt each change, the
+  checkbox's state is set **before** its `toggled` handler is connected in
+  `_build_menu()`, so programmatic updates never re-trigger `start()`/`stop()`.
+- **Agent contract.** Agents keep the machine awake with their own
+  `systemd-inhibit --who=sodamint-agent …`; Sodamint highlights those rows. The
+  repo-level contract lives in `AGENTS.md` (source of truth:
+  `.epic-loop/epics/multi-source/docs/agent-integration.md`); keep the
+  `AGENT_WHO` marker in `sodamint.py` in lockstep with it.
 
 ## Icons
 

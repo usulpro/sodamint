@@ -4,8 +4,8 @@ Epic: Inhibitor Dashboard For Sodamint
 Slug: `multi-source`
 Created: 2026-07-14T10:21:11+00:00
 Mode: implementation
-Active phase: Phase 3 - Manual Toggle & Quit (DONE) → next: Phase 4 - Docs & End-to-End
-Active task: Phase 3 fully closed (dynamic Quit label + child-reap fix + both-backends regression/quit-isolation verification) → next: Phase 4 task 1 (update CLAUDE.md + repo agent docs to the reshaped model)
+Active phase: Phase 4 - Docs & End-to-End (in progress)
+Active task: Phase 4 task 1 (CLAUDE.md + repo-root AGENTS.md aligned; install.sh confirmed) done → next: task 2 (whole-feature E2E: two agent inhibitors + manual toggle + external kill + quit)
 
 ## Current State
 
