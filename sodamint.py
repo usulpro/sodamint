@@ -180,6 +180,7 @@ class Sodamint:
 
     def __init__(self):
         self.proc = None  # the systemd-inhibit subprocess, or None when off
+        self._child_watch = None  # GLib child-watch source id for self.proc
         self._menu = None
         self._last_sig = None  # last rendered menu signature (skip no-op rebuilds)
 
@@ -239,7 +240,10 @@ class Sodamint:
 
         menu.append(Gtk.SeparatorMenuItem())
 
-        item_quit = Gtk.MenuItem(label="Quit")
+        # Dynamic label (D21): tell the truth about what quitting drops. Our
+        # subprocess is terminated on exit, so only "on" means quit releases a
+        # lock; external sources are unaffected either way.
+        item_quit = Gtk.MenuItem(label="Disable and quit" if on else "Quit")
         item_quit.connect("activate", self.quit)
         menu.append(item_quit)
 
@@ -293,10 +297,16 @@ class Sodamint:
             self.proc = None
         # Notice if the child dies unexpectedly, so the UI stays truthful.
         if self.proc is not None:
-            GLib.child_watch_add(self.proc.pid, self._on_child_exit)
+            self._child_watch = GLib.child_watch_add(self.proc.pid,
+                                                     self._on_child_exit)
         self._refresh()
 
     def stop(self):
+        # Cancel the child watch before reaping so GLib does not waitid() a pid
+        # that subprocess.wait() already reaped (avoids a spurious warning).
+        if self._child_watch is not None:
+            GLib.source_remove(self._child_watch)
+            self._child_watch = None
         if self.proc is not None and self.proc.poll() is None:
             self.proc.terminate()
             try:
@@ -308,7 +318,9 @@ class Sodamint:
 
     def _on_child_exit(self, pid, status):
         # inhibitor process ended (e.g. killed externally) — reflect that.
+        # The child watch is one-shot and is being torn down as it fires.
         if self.proc is not None and self.proc.pid == pid:
+            self._child_watch = None
             self.proc = None
             self._refresh()
 

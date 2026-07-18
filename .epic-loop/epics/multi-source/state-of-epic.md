@@ -4,8 +4,8 @@ Epic: Inhibitor Dashboard For Sodamint
 Slug: `multi-source`
 Created: 2026-07-14T10:21:11+00:00
 Mode: implementation
-Active phase: Phase 2 - Read & Render Inhibitors (DONE) → next: Phase 3 - Manual Toggle & Quit
-Active task: Phase 2 fully closed (read + render + verification) → next: Phase 3 task 1 (reconcile manual toggle + dynamic Quit label, D21)
+Active phase: Phase 3 - Manual Toggle & Quit (in progress)
+Active task: Phase 3 task 1 (dynamic Quit label D21 + child-reap warning fix) done → next: task 2 (both-backends regression + quit-isolation verification)
 
 ## Current State
 

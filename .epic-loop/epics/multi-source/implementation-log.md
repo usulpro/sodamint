@@ -153,3 +153,26 @@
   pre-existing `waitid` warning did not surface (no own-lock start/stop in the
   harness); still tracked for Phase 3.
 - **Phase 2 (Read & Render Inhibitors) is complete.**
+
+## 2026-07-18 - Phase 3 Task 1: dynamic Quit label + child-reap fix (implementation, closed)
+
+- `sodamint.py`: (A) `_build_menu` sets the Quit item label to
+  `"Disable and quit" if on else "Quit"` (D21) — delivered via the existing
+  `on`-keyed menu rebuild, no dialog, `quit()` unchanged. (B) fixed the
+  pre-existing `waitid: No child processes` warning: `start()` stores the
+  child-watch source id in `self._child_watch`; `stop()` `GLib.source_remove()`s
+  it before `terminate()`/`wait()`; `_on_child_exit` clears it (one-shot).
+  Observable lock/unlock semantics unchanged.
+- Verified (AppIndicator): label off→`Quit`, on→`Disable and quit`, off→`Quit`;
+  `★` row + checkbox track state; no `waitid` warning on stderr through a real
+  start/settle/stop under a GLib tick; external SIGTERM of our subprocess still
+  resets `self.proc`/UI via the preserved `_on_child_exit`; quit isolation —
+  `stop()` releases only our lock, an external `p3-ext-survive` lock survives in
+  `list_inhibitors()`. Techlead independently re-verified label + warning + clean
+  start/stop.
+- Risk-register: the `waitid` double-reap risk is now `resolved`.
+- Process-hygiene note: engineer's first (crashed) attempt leaked one orphaned
+  `systemd-inhibit … sleep infinity`; found and killed during cleanup. Lesson
+  carried into the task-2 brief: wrap `start()` in try/finally `stop()` and allow
+  a settle before asserting the async `★` row.
+- Not committed: `.claude/settings.json` (unrelated hook-install infra).
