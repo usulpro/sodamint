@@ -5,7 +5,7 @@ Slug: `multi-source`
 Created: 2026-07-14T10:21:11+00:00
 Mode: implementation
 Active phase: Phase 5 - Packaging & Distribution (in progress)
-Active task: Phase 5 task 1 (`.deb` build recipe + docs/packaging.md) done → next: task 2 (clean-env `.deb` install verification — needs container/VM or deps-purge)
+Active task: Phase 5 tasks 1-2 (build recipe + clean-env install verified in Docker) done → next: task 3 (GitHub Release path: README install section + documented user-gated `gh release` step)
 
 ## Current State
 

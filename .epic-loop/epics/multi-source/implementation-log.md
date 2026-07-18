@@ -263,3 +263,24 @@
 - Not committed: the built `.deb` (dist/) and `.claude/settings.json`.
 - Constraint for task 2: clean-env `apt install` needs a container/VM or a
   deps-purge (this host already has the runtime deps installed).
+
+## 2026-07-18 - Phase 5 Task 2: clean-env .deb install (verification, closed)
+
+- Fresh `ubuntu:24.04` Docker container (rootless docker), full
+  install→verify→remove flow. All 4 packaging criteria PASS:
+  1. `apt install ./sodamint_0.1.0_all.deb` auto-resolved + installed the four
+     deps (python3-gi, gir1.2-gtk-3.0, gir1.2-ayatanaappindicator3-0.1, systemd);
+     no `universe` enable needed on stock 24.04.
+  2. `dpkg -L` shows the correct file map; launcher executable.
+  3. Installed `.py` `py_compile`s; `import gi; Gtk 3.0; Gio/GLib/Gtk` → imports ok.
+  4. `apt remove` removes all files incl. `/usr/share/sodamint`; `purge` leaves
+     no dpkg record.
+- Runtime keep-awake not container-testable (no live logind/system bus) —
+  already host-verified in Phases 2–4.
+- Verification-method note: a first run showed `/usr/share/sodamint` STRAY after
+  remove; root cause was Step-3 `py_compile` writing `__pycache__` into the
+  install dir (unowned → dir non-empty → dpkg can't rmdir). Re-run with
+  `PYTHONPYCACHEPREFIX=/tmp/pycache` confirmed clean removal. NOT a packaging
+  defect; recipe unchanged. Lesson: don't py_compile a package's installed file
+  in place during a removal test.
+- No files changed (verification only); rebuilt `.deb` is gitignored.
