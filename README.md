@@ -10,10 +10,7 @@ A tiny GTK3 tray app for Linux Mint / Kubuntu and other systemd desktops.
 A caffeine analog that actually works, plus a live dashboard of every idle/sleep
 inhibitor on the system.
 
-![platform](https://img.shields.io/badge/platform-Linux-blue)
-![backend](https://img.shields.io/badge/keep--awake-systemd--logind-green)
-![toolkit](https://img.shields.io/badge/UI-GTK3%20tray-informational)
-![deps](https://img.shields.io/badge/deps-apt%2C%20no%20pip-lightgrey)
+![platform](https://img.shields.io/badge/platform-Linux-blue) ![backend](https://img.shields.io/badge/keep--awake-systemd--logind-green) ![toolkit](https://img.shields.io/badge/UI-GTK3%20tray-informational) ![deps](https://img.shields.io/badge/deps-apt%2C%20no%20pip-lightgrey) ![license](https://img.shields.io/badge/license-MIT-brightgreen)
 
 </div>
 
@@ -137,3 +134,7 @@ The whole app is one file — [`sodamint.py`](sodamint.py). See
 [`CLAUDE.md`](CLAUDE.md) for architecture and
 [`.epic-loop/epics/multi-source/docs/`](.epic-loop/epics/multi-source/docs/) for
 the design docs and packaging (`.deb` build, PPA and Flatpak notes).
+
+## License
+
+[MIT](LICENSE) © Oleg Proskurin
