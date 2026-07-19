@@ -51,12 +51,18 @@ a truthful "is anything keeping this machine awake?" light.
   collapsed.
 - **Our own lock is its own row — always present.** A reserved standalone row
   (never inside the System list) shows our manual lock: `★ … · pid N` (from the
-  live logind list) when held, or a dimmed `☆ keep-awake off` placeholder when
-  not. It is always there so toggling the lock only changes this row's *label*,
-  never the menu's item count — the menu height stays fixed, so pushing the
-  updated menu to the tray while it is open does not make it scrunch into
-  up/down scroll arrows (a live AppIndicator/DBusMenu menu can't be resized in
-  place; only a whole-menu replace propagates, and that reflows a *taller* menu).
+  live logind list) when held, or a **blank line** when not. It is always there
+  so toggling the lock only changes this row's *label*, never the menu's item
+  count — the menu height stays fixed, so pushing the updated menu to the tray
+  while it is open does not make it scrunch into up/down scroll arrows (a live
+  AppIndicator/DBusMenu menu can't be resized in place; only a whole-menu replace
+  propagates, and that reflows a *taller* menu).
+- **Block vs delay.** The row list (and the System submenu) show **every**
+  idle/sleep inhibitor, but the **icon and the `Awake — N` count** track only
+  `mode == "block"` holders — the ones that actually keep the machine awake.
+  Ever-present `delay`-mode hooks (NetworkManager, ModemManager, cleanup-before-
+  suspend, screen-lock) still appear in `System` for visibility but do not light
+  the icon, so `Idle` + a non-empty `System (k)` is a normal, honest state.
 - **Agents** — agent sources (`who == sodamint-agent`) under an insensitive
   `Agents` header (D20). Shown only when non-empty.
 - **System (submenu)** — all other (non-agent, non-ours) inhibitors live in a

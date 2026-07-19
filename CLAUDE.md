@@ -59,17 +59,19 @@ and the only lock we release is our own. See the epic docs under
   list. When adding UI state, update `_refresh()` rather than mutating widgets ad
   hoc.
 - **`_refresh()` repaints from `list_inhibitors()`.** It sets the icon from the
-  source *count* (active iff ≥1), a status header (`Awake — N sources` / `Idle`),
-  and read-only rows. `list_inhibitors()` keeps only **`mode == "block"`**
-  idle/sleep holders — `delay`-mode inhibitors (NetworkManager, ModemManager,
-  "cleanup before suspend", …) are always present and don't hold the machine
-  awake, so they're excluded (else the icon would be pinned active forever). All
-  rows come from the live logind list (single source of truth):
-  `_partition_inhibitors()` splits it into our own lock (`★`, matched by
-  `self.proc.pid`) as its **own distinct, always-present row** (a dimmed
-  `☆ keep-awake off` placeholder holds the slot when not held, so toggling only
-  changes the row's label — never the item count — keeping the menu height fixed
-  so the open menu doesn't scrunch into scroll arrows), agent sources (`◆`,
+  block-holder *count* (active iff ≥1), a status header (`Awake — N sources` /
+  `Idle`), and read-only rows. `list_inhibitors()` returns **every** idle/sleep
+  holder (block + delay) so the dashboard shows the full picture; the icon/status
+  count only **`mode == "block"`** holders — the ones that actually keep the
+  machine awake — so ever-present `delay`-mode hooks (NetworkManager,
+  ModemManager, "cleanup before suspend", …) still show in `System` but don't pin
+  the icon active (`Idle` + a non-empty `System (k)` is normal). All rows come
+  from the live logind list (single source of truth): `_partition_inhibitors()`
+  splits it into our own lock (`★`, matched by `self.proc.pid`) as its **own
+  distinct, always-present row** (a blank line holds the slot when not held, so
+  toggling only changes the row's label — never the item count — keeping the menu
+  height fixed so the open menu doesn't scrunch into scroll arrows), agent
+  sources (`◆`,
   `who == "sodamint-agent"`) under an `Agents` header, and everything else (`●`)
   in a native **`System (k)` submenu** (a flyout, since tray menus close on item
   activation and can't do an in-place accordion). It also drives the keep-awake

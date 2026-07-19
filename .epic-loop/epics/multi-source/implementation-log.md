@@ -439,3 +439,20 @@
   open — is rarer and not addressed here. Needs on-device confirmation on
   Cinnamon that a same-height set_menu no longer reflows.
 - Docs: `docs/tray-ux.md`, `CLAUDE.md`.
+
+## 2026-07-19 - Follow-ups: blank placeholder + restore full System list
+
+- User feedback on the two prior fixes:
+  1. Placeholder should be an EMPTY row (just reserve height), not text. Changed
+     the reserved own-row label from "☆ keep-awake off" to a blank " ".
+  2. System tasks vanished — the bug-1 block-mode filter in `list_inhibitors()`
+     had also removed `delay`-mode holders from the *display*. Regression.
+- Split display from icon logic: `list_inhibitors()` again returns every
+  idle/sleep holder (block + delay), so the System submenu shows the full list
+  as before. `_refresh()` now counts only `mode == "block"` holders (plus our own
+  lock during the logind lag) for the icon + `Awake — N` header, so the icon
+  stays honest (bug 1 remains fixed) while `Idle` + a non-empty `System (k)` is a
+  valid state.
+- Verified: live list shows the delay-mode system rows again; blocking count
+  drives the icon; OFF/ON menus keep identical item counts (10 vs 10);
+  py_compile. Docs: `docs/tray-ux.md`, `CLAUDE.md`.

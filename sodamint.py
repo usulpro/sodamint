@@ -164,19 +164,19 @@ def list_inhibitors():
     """Return the live idle/sleep inhibitors as a list of Inhibitor records.
 
     D-Bus (login1) is the primary source; `systemd-inhibit --list` is a
-    fallback. Only rows that actually keep the machine awake are kept (D12):
-    `mode == "block"` on idle/sleep. `delay`-mode inhibitors (NetworkManager,
-    ModemManager, "cleanup before suspend", screen-lock hooks, …) merely postpone
-    a suspend transition for a few seconds — they are always present on a normal
-    desktop and do NOT hold the machine awake, so counting them would pin the
-    icon permanently active. Never raises: returns [] when nothing qualifies or
-    the source is unreachable.
+    fallback. Kept: every idle/sleep holder (D12), both `block` and `delay`
+    mode, so the dashboard shows the full picture. The distinction matters for
+    the *icon/status* only (see `_refresh`): `block`-mode holders actually keep
+    the machine awake, while `delay`-mode ones (NetworkManager, ModemManager,
+    "cleanup before suspend", screen-lock hooks, …) merely postpone a suspend
+    for a few seconds — they are always present, so they must NOT light the icon.
+    Never raises: returns [] when nothing qualifies or the source is unreachable.
     """
     try:
         rows = _list_inhibitors_dbus()
     except Exception:
         rows = _list_inhibitors_fallback()
-    return [r for r in rows if r.mode == "block" and _keeps_awake(r.what)]
+    return [r for r in rows if _keeps_awake(r.what)]
 
 
 # Row-type glyphs shown in the tray (docs/tray-ux.md).
@@ -280,14 +280,10 @@ class Sodamint:
         # never the menu's item count — so the menu height stays fixed and the
         # open menu does not scrunch into scroll arrows when the ★ row appears
         # (a live AppIndicator menu can't be resized in place reliably). When our
-        # lock is held it shows the real logind row (★); otherwise a dimmed
-        # placeholder (☆) holds the space.
-        if own is not None:
-            glyph, text = own  # ★ + why/pid, straight from the logind list
-            own_label = f"{glyph} {text}"
-        else:
-            own_label = "☆ keep-awake off"
-        own_item = Gtk.MenuItem(label=own_label)
+        # lock is held it shows the real logind row (★); otherwise the row is a
+        # blank line that just holds the vertical space.
+        own_item = Gtk.MenuItem(label=(f"{own[0]} {own[1]}" if own is not None
+                                       else " "))
         own_item.set_sensitive(False)  # read-only label — inert (D14)
         menu.append(own_item)
         menu.append(Gtk.SeparatorMenuItem())
@@ -426,13 +422,19 @@ class Sodamint:
     # ---- ui state -----------------------------------------------------------
     def _refresh(self):
         """Single repaint point: derive icon, status, and rows from the live
-        logind inhibitor list plus our own lock. The icon is active iff at least
-        one block-mode idle/sleep source exists (D13)."""
+        logind inhibitor list plus our own lock. The list (and the System
+        submenu) show every idle/sleep holder, but the icon/status count only
+        `block`-mode holders — the ones that actually keep the machine awake
+        (D13) — so ever-present `delay`-mode hooks don't pin the icon active."""
         inhibitors = list_inhibitors()
         on = self.is_on()
         own_pid = self.proc.pid if on else None
         agents, own, system = _partition_inhibitors(inhibitors, own_pid)
-        n = len(inhibitors)
+        # Count only what actually holds the machine awake; include our own lock
+        # for the brief window after start() before logind has listed it.
+        n = sum(1 for i in inhibitors if i.mode == "block")
+        if on and own is None:
+            n += 1
         status = _status_text(n)
         icon = ICON_ACTIVE if n >= 1 else ICON_INACTIVE
 
