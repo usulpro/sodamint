@@ -355,3 +355,19 @@
   `Agents` group are unchanged. Verified live: top level compact, `●` rows inside
   the submenu, own `★` standalone; both backends build; py_compile OK.
 - Docs updated: `docs/tray-ux.md`, `CLAUDE.md`.
+
+## 2026-07-19 - Feature: "Start on login" autostart toggle
+
+- The `.deb`/PPA packages install the app + menu launcher but never enable
+  autostart (only `install.sh` did). Added a per-user autostart toggle so it
+  works install-agnostically. New module helpers `_autostart_path/_command/
+  _enabled` + `_set_autostart` write/remove `~/.config/autostart/sodamint.desktop`
+  (respects `XDG_CONFIG_HOME`); new tray checkbox **"Start on login"** in
+  `_build_menu` with the same set-state-before-connect guard, handled by
+  `_on_toggle_autostart`. `Exec=` prefers the `sodamint` PATH launcher, else the
+  running interpreter + script. Same file `install.sh` seeds, so state is
+  consistent across install methods.
+- Verified: unit (create/idempotent/remove in isolated XDG_CONFIG_HOME); live
+  menu (checkbox present, reflects file, survives rebuild, toggles file);
+  py_compile OK.
+- Docs: `docs/tray-ux.md`, `CLAUDE.md`.

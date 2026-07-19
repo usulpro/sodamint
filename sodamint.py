@@ -13,6 +13,8 @@ and releases the lock by terminating that process.
 """
 
 import collections
+import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -38,6 +40,50 @@ INHIBIT_WHAT = "idle:sleep"
 INHIBIT_WHY = "Sodamint keep-awake"
 ICON_ACTIVE = "sodamint-active"
 ICON_INACTIVE = "sodamint-inactive"
+
+# Per-user autostart entry (XDG). The .deb/PPA packages install the app + its
+# menu launcher but do NOT enable autostart; the "Start on login" toggle writes
+# this file so it works the same however Sodamint was installed.
+AUTOSTART_BASENAME = "sodamint.desktop"
+
+
+def _autostart_path():
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    return os.path.join(base, "autostart", AUTOSTART_BASENAME)
+
+
+def _autostart_command():
+    """The Exec= line: prefer the installed `sodamint` launcher on PATH, else
+    relaunch exactly this interpreter + script (works from a checkout)."""
+    if shutil.which("sodamint"):
+        return "sodamint"
+    return f"{sys.executable} {os.path.abspath(__file__)}"
+
+
+def _autostart_enabled():
+    return os.path.isfile(_autostart_path())
+
+
+def _set_autostart(enabled):
+    """Create or remove the autostart .desktop. Raises OSError on write failure."""
+    path = _autostart_path()
+    if enabled:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write(
+                "[Desktop Entry]\n"
+                "Type=Application\n"
+                "Name=Sodamint\n"
+                "Comment=Keep the machine awake and show what is holding it awake\n"
+                f"Exec={_autostart_command()}\n"
+                "Icon=sodamint-active\n"
+                "Terminal=false\n"
+                "Categories=Utility;\n"
+                "X-GNOME-Autostart-enabled=true\n"
+            )
+    elif os.path.exists(path):
+        os.remove(path)
+
 
 # One logind inhibitor as returned by ListInhibitors(): (what, who, why, mode,
 # uid, pid). `what` is a colon list (e.g. "idle:sleep"); uid/pid are ints.
@@ -263,6 +309,13 @@ class Sodamint:
         self.item_toggle.connect("toggled", self._on_toggle_item)
         menu.append(self.item_toggle)
 
+        # Start-on-login toggle (per-user autostart). Same guard: state set
+        # before the handler is connected so a rebuild never re-writes the file.
+        self.item_autostart = Gtk.CheckMenuItem(label="Start on login")
+        self.item_autostart.set_active(_autostart_enabled())
+        self.item_autostart.connect("toggled", self._on_toggle_autostart)
+        menu.append(self.item_autostart)
+
         menu.append(Gtk.SeparatorMenuItem())
 
         # Dynamic label (D21): tell the truth about what quitting drops. Our
@@ -286,6 +339,13 @@ class Sodamint:
                          icon, button, time)
 
     # ---- toggling -----------------------------------------------------------
+    def _on_toggle_autostart(self, item):
+        # Write/remove the autostart .desktop; surface a failure without crashing.
+        try:
+            _set_autostart(item.get_active())
+        except OSError as exc:
+            self._error(f"Could not update autostart:\n{exc}")
+
     def _on_toggle_item(self, item):
         # Sync with the checkbox state chosen by the user.
         if item.get_active():

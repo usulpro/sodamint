@@ -40,6 +40,7 @@ a truthful "is anything keeping this machine awake?" light.
 │                              └──────────────────────────────┘
 ├────────────────────────────────────────────┤
 │ ☑ Keep awake (manual)                       │   manual toggle (checkbox)
+│ ☐ Start on login                            │   per-user autostart (checkbox)
 ├────────────────────────────────────────────┤
 │ Disable and quit                            │   dynamic label (toggle is on)
 └────────────────────────────────────────────┘
@@ -67,11 +68,18 @@ a truthful "is anything keeping this machine awake?" light.
     [`agent-integration.md`](agent-integration.md)); grouped under `Agents`.
   - `★` **our own manual lock** — pid matches `self.proc`; its own distinct row.
   - `●` **any other inhibitor** — arbitrary system/app source; under `System`.
-- **Keep awake (manual)** — the classic checkbox, the **only control** in the
-  menu. Checking it starts our own `systemd-inhibit … sleep infinity` subprocess
-  (today's `start()`); unchecking terminates it (`stop()`). This is unchanged
-  from today and is how the user releases the one lock Sodamint owns. The
-  feedback-loop guard (`handler_block_by_func`) is kept.
+- **Keep awake (manual)** — the classic checkbox, the primary control. Checking
+  it starts our own `systemd-inhibit … sleep infinity` subprocess (today's
+  `start()`); unchecking terminates it (`stop()`). This is unchanged from today
+  and is how the user releases the one lock Sodamint owns. The feedback-loop
+  guard (state set before the handler is connected) is kept.
+- **Start on login** — a checkbox that creates/removes a per-user autostart
+  entry at `~/.config/autostart/sodamint.desktop` (respecting `XDG_CONFIG_HOME`).
+  The `.deb`/PPA packages install the app + its menu launcher but do **not**
+  enable autostart, so this is the install-agnostic way to run Sodamint at login;
+  it writes the same file `install.sh` seeds. The checkbox reflects whether that
+  file exists; its `Exec=` prefers the `sodamint` launcher on `PATH`, falling
+  back to the running interpreter + script. Same guard as above.
 - **Quit item** — see below; its label is dynamic.
 
 ## No release of external sources (D14)
