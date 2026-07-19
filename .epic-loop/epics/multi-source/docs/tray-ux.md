@@ -49,9 +49,14 @@ a truthful "is anything keeping this machine awake?" light.
 - **Status header** — `Awake — N sources` or `Idle` when empty. Insensitive
   (label only). The count is always the full total, even while System is
   collapsed.
-- **Our own lock is its own row** — when the manual toggle is on, our `★` lock
-  is shown as a standalone, visually distinct row (never inside the System list),
-  so it is obvious which lock is ours to drop.
+- **Our own lock is its own row — always present.** A reserved standalone row
+  (never inside the System list) shows our manual lock: `★ … · pid N` (from the
+  live logind list) when held, or a dimmed `☆ keep-awake off` placeholder when
+  not. It is always there so toggling the lock only changes this row's *label*,
+  never the menu's item count — the menu height stays fixed, so pushing the
+  updated menu to the tray while it is open does not make it scrunch into
+  up/down scroll arrows (a live AppIndicator/DBusMenu menu can't be resized in
+  place; only a whole-menu replace propagates, and that reflows a *taller* menu).
 - **Agents** — agent sources (`who == sodamint-agent`) under an insensitive
   `Agents` header (D20). Shown only when non-empty.
 - **System (submenu)** — all other (non-agent, non-ours) inhibitors live in a

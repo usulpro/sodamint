@@ -66,7 +66,10 @@ and the only lock we release is our own. See the epic docs under
   awake, so they're excluded (else the icon would be pinned active forever). All
   rows come from the live logind list (single source of truth):
   `_partition_inhibitors()` splits it into our own lock (`★`, matched by
-  `self.proc.pid`) as its **own distinct row**, agent sources (`◆`,
+  `self.proc.pid`) as its **own distinct, always-present row** (a dimmed
+  `☆ keep-awake off` placeholder holds the slot when not held, so toggling only
+  changes the row's label — never the item count — keeping the menu height fixed
+  so the open menu doesn't scrunch into scroll arrows), agent sources (`◆`,
   `who == "sodamint-agent"`) under an `Agents` header, and everything else (`●`)
   in a native **`System (k)` submenu** (a flyout, since tray menus close on item
   activation and can't do an in-place accordion). It also drives the keep-awake

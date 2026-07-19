@@ -422,3 +422,20 @@
   Left the reliable model in place (data always correct; the reflow is cosmetic
   and only occurs when content changes while the menu is held open). Options for
   a follow-up recorded here for the next session.
+
+## 2026-07-19 - Bug 2 fix: reserve the own-lock row (fixed menu height)
+
+- User's idea: keep the own-lock row ALWAYS present so toggling only changes its
+  label, not the menu's item count — the menu height stays fixed, so pushing the
+  updated menu to the tray while it is open no longer scrunches it into scroll
+  arrows. Sidesteps the AppIndicator limitation (can't resize a live menu; can't
+  detect open-state) without changing the reliable set_menu model or the
+  logind-sourced rows.
+- `_build_menu` now always emits the own row + its separator: `★ … · pid N` from
+  the logind list when held, else a dimmed `☆ keep-awake off` placeholder. On
+  toggle the ★ still appears ~1s later (logind lag) but the height is unchanged.
+- Verified: OFF and ON menus have identical item counts (10 vs 10). Remaining
+  reflow case — agents/system rows appearing/disappearing while the menu is held
+  open — is rarer and not addressed here. Needs on-device confirmation on
+  Cinnamon that a same-height set_menu no longer reflows.
+- Docs: `docs/tray-ux.md`, `CLAUDE.md`.

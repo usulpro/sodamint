@@ -275,13 +275,22 @@ class Sodamint:
         menu.append(header)
         menu.append(Gtk.SeparatorMenuItem())
 
-        # Our own lock — its own distinct row, never inside the System list.
+        # Our own keep-awake row is ALWAYS present (a reserved slot), never in
+        # the System list. Toggling the lock only changes this row's label —
+        # never the menu's item count — so the menu height stays fixed and the
+        # open menu does not scrunch into scroll arrows when the ★ row appears
+        # (a live AppIndicator menu can't be resized in place reliably). When our
+        # lock is held it shows the real logind row (★); otherwise a dimmed
+        # placeholder (☆) holds the space.
         if own is not None:
-            glyph, text = own
-            own_item = Gtk.MenuItem(label=f"{glyph} {text}")
-            own_item.set_sensitive(False)  # read-only label — inert (D14)
-            menu.append(own_item)
-            menu.append(Gtk.SeparatorMenuItem())
+            glyph, text = own  # ★ + why/pid, straight from the logind list
+            own_label = f"{glyph} {text}"
+        else:
+            own_label = "☆ keep-awake off"
+        own_item = Gtk.MenuItem(label=own_label)
+        own_item.set_sensitive(False)  # read-only label — inert (D14)
+        menu.append(own_item)
+        menu.append(Gtk.SeparatorMenuItem())
 
         # Agent sources.
         if agents:
