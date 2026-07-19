@@ -395,3 +395,30 @@
   the shell keeps the menu open on a checkbox click, that one rebuild could still
   reflow. The *delayed* surprise rebuild (the reported symptom) is gone. Needs
   on-device confirmation on Cinnamon.
+
+## 2026-07-19 - Revert is_on() workaround; bug 2 (menu reflow) still open
+
+- User rejected the earlier fix that rendered the own `★` row from `is_on()`
+  instead of the logind list: it only masked the own-lock case (the menu still
+  reflows when ANY new item — agent, external block lock — appears while open),
+  and it broke the single-source-of-truth architecture. Reverted: `★` again comes
+  from the live logind list (matched by `self.proc.pid`); kept the bug-1 fix
+  (block-mode filter) and the reliable `set_menu`-on-change model.
+- Investigated bug 2 (open menu scrunches into scroll arrows when a row is added)
+  properly, on-device via the panel's DBusMenu:
+  - The GtkMenu **does** receive "show" on the panel's about-to-show.
+  - BUT rebuilding/mutating the menu's children in place does **not** propagate
+    to what the panel renders (verified: `list_inhibitors()` saw a new external
+    block lock, `_fill_menu` ran, yet `GetLayout` returned the stale layout). So
+    an "update items in place / lazy-refresh on open" fix produces a **stale**
+    menu — unshippable.
+  - Only `indicator.set_menu(new_menu)` (full replace) reliably propagates, and
+    that is exactly what reflows when done while the panel displays the menu.
+  - The app **cannot reliably detect** when the panel has the menu open
+    (AppIndicator renders a DBusMenu copy; local Gtk map/hide signals don't
+    track it), so "defer the rebuild until closed" isn't possible from our side.
+- CONCLUSION: bug 2 is a genuine libappindicator/DBusMenu limitation; a reliable
+  fix needs on-device iteration on Cinnamon (can't be verified from this env).
+  Left the reliable model in place (data always correct; the reflow is cosmetic
+  and only occurs when content changes while the menu is held open). Options for
+  a follow-up recorded here for the next session.

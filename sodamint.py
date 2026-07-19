@@ -184,30 +184,41 @@ GLYPH = {"agent": "◆", "own": "★", "other": "●"}
 AGENT_WHO = "sodamint-agent"  # the marker (docs/agent-integration.md); lockstep
 
 
-def _row_label(inh):
+def _classify(inh, own_pid):
+    """Row type for an inhibitor: 'agent', 'own', or 'other' (docs/data-source.md)."""
+    if inh.who == AGENT_WHO:
+        return "agent"
+    if own_pid is not None and inh.pid == own_pid:
+        return "own"
+    return "other"
+
+
+def _row_label(inh, own=False):
     """Human row text: the `why` (falling back to `who`) plus pid; no age (D19)."""
     base = inh.why.strip() if (inh.why and inh.why.strip()) else inh.who
-    return f"{base} · pid {inh.pid}"
+    marker = " (this)" if own else ""
+    return f"{base}{marker} · pid {inh.pid}"
 
 
 def _partition_inhibitors(inhibitors, own_pid):
-    """Split the (block-mode) inhibitors into agent rows and system rows,
-    excluding our own lock (``own_pid``). Our own row is rendered separately from
-    ``is_on()`` so it shows the instant the toggle flips — not a poll later —
-    which also stops a late poll from rebuilding the open menu (bug: the menu
-    would scrunch into scroll arrows instead of growing).
+    """Split inhibitors for rendering: agent rows, our own row, and system rows.
 
-    Pure — returns ``(agents, system)``, each ``[(glyph, text), ...]``.
+    Everything comes from the live logind list (the single source of truth); our
+    own lock is matched by ``own_pid`` and pulled out as its own distinct row.
+    Pure — returns ``(agents, own, system)`` where ``agents`` / ``system`` are
+    ``[(glyph, text), ...]`` and ``own`` is a ``(glyph, text)`` or None.
     """
-    agents, system = [], []
+    agents, system, own = [], [], None
     for inh in inhibitors:
-        if own_pid is not None and inh.pid == own_pid:
-            continue  # our own lock — rendered from is_on(), not the list
-        if inh.who == AGENT_WHO:
-            agents.append((GLYPH["agent"], _row_label(inh)))
+        kind = _classify(inh, own_pid)
+        row = (GLYPH[kind], _row_label(inh, own=(kind == "own")))
+        if kind == "agent":
+            agents.append(row)
+        elif kind == "own":
+            own = row
         else:
-            system.append((GLYPH["other"], _row_label(inh)))
-    return agents, system
+            system.append(row)
+    return agents, own, system
 
 
 def _status_text(n):
@@ -408,16 +419,11 @@ class Sodamint:
         """Single repaint point: derive icon, status, and rows from the live
         logind inhibitor list plus our own lock. The icon is active iff at least
         one block-mode idle/sleep source exists (D13)."""
+        inhibitors = list_inhibitors()
         on = self.is_on()
         own_pid = self.proc.pid if on else None
-        agents, system = _partition_inhibitors(list_inhibitors(), own_pid)
-        # Render our own lock from is_on()/self.proc directly (not the logind
-        # list), so the ★ row appears the instant the toggle flips and a later
-        # poll finds identical content — no rebuild of the open menu.
-        own = None
-        if on:
-            own = (GLYPH["own"], f"{INHIBIT_WHY} (this) · pid {self.proc.pid}")
-        n = (1 if on else 0) + len(agents) + len(system)
+        agents, own, system = _partition_inhibitors(inhibitors, own_pid)
+        n = len(inhibitors)
         status = _status_text(n)
         icon = ICON_ACTIVE if n >= 1 else ICON_INACTIVE
 

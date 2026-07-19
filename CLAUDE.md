@@ -58,20 +58,18 @@ and the only lock we release is our own. See the epic docs under
   `_refresh()` is the single place that repaints all UI from the live inhibitor
   list. When adding UI state, update `_refresh()` rather than mutating widgets ad
   hoc.
-- **`_refresh()` repaints from `list_inhibitors()` plus `is_on()`.** It sets the
-  icon from the source *count* (active iff ≥1), a status header
-  (`Awake — N sources` / `Idle`), and read-only rows. `list_inhibitors()` keeps
-  only **`mode == "block"`** idle/sleep holders — `delay`-mode inhibitors
-  (NetworkManager, ModemManager, "cleanup before suspend", …) are always present
-  and don't hold the machine awake, so they're excluded (else the icon would be
-  pinned active forever). Our own lock (`★`) is its **own distinct row**, rendered
-  from `is_on()`/`self.proc` (not the logind list) so it appears the instant the
-  toggle flips and a later poll finds identical content — no rebuild of the open
-  menu. `_partition_inhibitors()` splits the block-mode list — excluding our own
-  pid — into agent sources (`◆`, `who == "sodamint-agent"`) under an `Agents`
-  header and everything else (`●`) in a native **`System (k)` submenu** (a flyout,
-  since tray menus close on item activation and can't do an in-place accordion).
-  It also drives the keep-awake
+- **`_refresh()` repaints from `list_inhibitors()`.** It sets the icon from the
+  source *count* (active iff ≥1), a status header (`Awake — N sources` / `Idle`),
+  and read-only rows. `list_inhibitors()` keeps only **`mode == "block"`**
+  idle/sleep holders — `delay`-mode inhibitors (NetworkManager, ModemManager,
+  "cleanup before suspend", …) are always present and don't hold the machine
+  awake, so they're excluded (else the icon would be pinned active forever). All
+  rows come from the live logind list (single source of truth):
+  `_partition_inhibitors()` splits it into our own lock (`★`, matched by
+  `self.proc.pid`) as its **own distinct row**, agent sources (`◆`,
+  `who == "sodamint-agent"`) under an `Agents` header, and everything else (`●`)
+  in a native **`System (k)` submenu** (a flyout, since tray menus close on item
+  activation and can't do an in-place accordion). It also drives the keep-awake
   checkbox (from `is_on()`), the **`Start on login`** checkbox (from
   `_autostart_enabled()` — a per-user `~/.config/autostart/sodamint.desktop` the
   packages don't ship), and the
