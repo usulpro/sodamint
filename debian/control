@@ -1,0 +1,21 @@
+Source: sodamint
+Section: utils
+Priority: optional
+Maintainer: Oleg Proskurin <usulpro@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Homepage: https://github.com/usulpro/sodamint
+Rules-Requires-Root: no
+
+Package: sodamint
+Architecture: all
+Depends: ${misc:Depends},
+         python3-gi,
+         gir1.2-gtk-3.0,
+         gir1.2-ayatanaappindicator3-0.1,
+         systemd
+Description: Tray toggle + dashboard that keeps a Linux machine awake
+ Sodamint is a GTK3 system-tray app that holds a systemd-logind idle/sleep
+ inhibitor to keep the machine awake, and shows a live read-only dashboard of
+ every process currently holding it awake (agents highlighted). A caffeine
+ analog for Linux Mint / Kubuntu.

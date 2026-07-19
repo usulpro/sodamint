@@ -1,0 +1,4 @@
+sodamint.py                    usr/share/sodamint
+icons/sodamint-active.svg      usr/share/icons/hicolor/scalable/status
+icons/sodamint-inactive.svg    usr/share/icons/hicolor/scalable/status
+sodamint.desktop               usr/share/applications

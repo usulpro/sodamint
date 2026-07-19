@@ -10,6 +10,12 @@ package that Launchpad builds itself.
 Replace `<owner>` with your Launchpad username and `<version>` with the release
 version (e.g. `1.0.0`) throughout.
 
+> **The `debian/` source tree now exists in the repo root** (control, changelog,
+> rules, install, copyright, source/format+options). Step 2 below is already
+> done — building it is `debuild -S` (or `dpkg-buildpackage -S`). The
+> `packaging/build-deb.sh` shortcut is still there for direct `.deb` downloads;
+> the `debian/` tree is only for the PPA source upload.
+
 ## 1. Prerequisites (one-time)
 
 - A **Launchpad account** — https://launchpad.net.

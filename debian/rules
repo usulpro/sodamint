@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+# Pure-Python single file: no build/test steps.
+override_dh_auto_build:
+override_dh_auto_test:
+
+# Ship the PATH launcher (mirrors install.sh / the dpkg-deb recipe).
+execute_after_dh_install:
+	install -d debian/sodamint/usr/bin
+	printf '#!/usr/bin/env bash\nexec python3 /usr/share/sodamint/sodamint.py "$$@"\n' \
+	    > debian/sodamint/usr/bin/sodamint
+	chmod 0755 debian/sodamint/usr/bin/sodamint

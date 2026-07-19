@@ -1,0 +1,14 @@
+tar-ignore = .git
+tar-ignore = .git/*
+tar-ignore = .gitignore
+tar-ignore = .claude
+tar-ignore = .claude/*
+tar-ignore = .epic-loop
+tar-ignore = .epic-loop/*
+tar-ignore = dist
+tar-ignore = dist/*
+tar-ignore = *.deb
+tar-ignore = __pycache__
+tar-ignore = *.pyc
+tar-ignore = packaging
+tar-ignore = packaging/*

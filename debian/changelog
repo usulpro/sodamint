@@ -1,0 +1,7 @@
+sodamint (1.0.0~noble1) noble; urgency=medium
+
+  * Initial release: logind inhibitor dashboard, manual keep-awake toggle,
+    agent-source highlighting (--who=sodamint-agent), read-only external
+    sources, dynamic Quit label.
+
+ -- Oleg Proskurin <usulpro@gmail.com>  Sun, 19 Jul 2026 12:15:43 +0700
