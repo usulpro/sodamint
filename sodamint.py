@@ -328,10 +328,13 @@ class Sodamint:
 
         menu.append(Gtk.SeparatorMenuItem())
 
-        # Dynamic label (D21): tell the truth about what quitting drops. Our
-        # subprocess is terminated on exit, so only "on" means quit releases a
-        # lock; external sources are unaffected either way.
-        item_quit = Gtk.MenuItem(label="Disable and quit" if on else "Quit")
+        # Dynamic label (D21): tell the truth about what quitting drops. Quit
+        # terminates only OUR subprocess (stop()); agent/external locks are
+        # untouched (D14) and keep the machine awake after we exit — so the label
+        # says "my keep-awake", not a blanket "disable", to avoid implying that
+        # quitting lets the machine sleep when others still hold it.
+        item_quit = Gtk.MenuItem(
+            label="Disable my keep-awake & quit" if on else "Quit")
         item_quit.connect("activate", self.quit)
         menu.append(item_quit)
 

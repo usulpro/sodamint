@@ -78,7 +78,9 @@ and the only lock we release is our own. See the epic docs under
   checkbox (from `is_on()`), the **`Start on login`** checkbox (from
   `_autostart_enabled()` — a per-user `~/.config/autostart/sodamint.desktop` the
   packages don't ship), and the
-  **dynamic Quit label** (`Disable and quit` when our lock is on, else `Quit`).
+  **dynamic Quit label** (`Disable my keep-awake & quit` when our lock is on,
+  else `Quit` — "my" because quit drops only our lock, never agent/external ones,
+  so the machine can stay awake after we exit).
   Source rows are inert (no per-source action — D14). Refreshes run on a
   `GLib.timeout_add_seconds(POLL_SECONDS, …)` poll and on StatusIcon popup
   (logind emits no inhibitor-changed signal).

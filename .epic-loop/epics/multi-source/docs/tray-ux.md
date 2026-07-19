@@ -42,7 +42,7 @@ a truthful "is anything keeping this machine awake?" light.
 │ ☑ Keep awake (manual)                       │   manual toggle (checkbox)
 │ ☐ Start on login                            │   per-user autostart (checkbox)
 ├────────────────────────────────────────────┤
-│ Disable and quit                            │   dynamic label (toggle is on)
+│ Disable my keep-awake & quit                │   dynamic label (toggle is on)
 └────────────────────────────────────────────┘
 ```
 
@@ -132,9 +132,11 @@ dynamic**, so it tells the truth about what quitting will do:
 
 - Manual toggle **off** → label `Quit` — nothing of ours to drop; quit
   immediately.
-- Manual toggle **on** → label `Disable and quit` — quitting will release our
-  own keep-awake lock (our subprocess is terminated on exit). External sources
-  are unaffected either way.
+- Manual toggle **on** → label `Disable my keep-awake & quit` — quitting
+  releases **our own** keep-awake lock (our subprocess is terminated on exit).
+  The label says "my" on purpose: agent/external locks are **not** touched (D14),
+  so if any of those are held the machine stays awake after we quit. A blanket
+  "Disable and quit" would wrongly imply quitting always lets the machine sleep.
 
 `_refresh()` updates this label from `is_on()` alongside the icon and checkbox
 (single repaint point). Quit action itself is unchanged: `stop()` then
