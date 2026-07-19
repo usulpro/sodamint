@@ -371,3 +371,27 @@
   menu (checkbox present, reflects file, survives rebuild, toggles file);
   py_compile OK.
 - Docs: `docs/tray-ux.md`, `CLAUDE.md`.
+
+## 2026-07-19 - Bugfixes: icon stuck active + menu reflow on toggle
+
+- **Bug 1 (icon always green):** `list_inhibitors()` counted `delay`-mode
+  inhibitors, which are always present on a normal desktop (NetworkManager,
+  ModemManager, "cleanup before suspend", screen-lock hooks) and do NOT keep the
+  machine awake. Fixed the filter to require `mode == "block"` (matches the
+  long-standing "actually block idle/sleep" intent). Now: nothing holding →
+  `Idle` + inactive icon; toggling on → active; an external block-idle holder
+  (e.g. a video player) correctly shows and lights the icon.
+- **Bug 2 (open menu scrunches into scroll arrows ~1s after toggling on):** the
+  own `★` row used to come from the logind list, which lags `start()` by ~1s, so
+  a *poll* rebuilt the already-open menu. Now the own row is rendered directly
+  from `is_on()`/`self.proc`, so it appears at click time and the later poll
+  finds identical content (stable signature) → no rebuild of the open menu.
+  `_partition_inhibitors()` now returns `(agents, system)` excluding our pid;
+  `_classify` removed, `_row_label` simplified.
+- Verified: live filter now block-only (6 delay dropped); deterministic logic
+  test (off→Idle/inactive, on→active + immediate ★, poll→no rebuild, external
+  block→shown); py_compile. Docs: `CLAUDE.md`.
+- NOTE: a single menu rebuild still happens at the moment of the toggle click; if
+  the shell keeps the menu open on a checkbox click, that one rebuild could still
+  reflow. The *delayed* surprise rebuild (the reported symptom) is gone. Needs
+  on-device confirmation on Cinnamon.

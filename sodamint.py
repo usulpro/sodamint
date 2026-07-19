@@ -164,14 +164,19 @@ def list_inhibitors():
     """Return the live idle/sleep inhibitors as a list of Inhibitor records.
 
     D-Bus (login1) is the primary source; `systemd-inhibit --list` is a
-    fallback. Only rows that actually keep the machine awake are kept (D12).
-    Never raises: returns [] when nothing is held or the source is unreachable.
+    fallback. Only rows that actually keep the machine awake are kept (D12):
+    `mode == "block"` on idle/sleep. `delay`-mode inhibitors (NetworkManager,
+    ModemManager, "cleanup before suspend", screen-lock hooks, …) merely postpone
+    a suspend transition for a few seconds — they are always present on a normal
+    desktop and do NOT hold the machine awake, so counting them would pin the
+    icon permanently active. Never raises: returns [] when nothing qualifies or
+    the source is unreachable.
     """
     try:
         rows = _list_inhibitors_dbus()
     except Exception:
         rows = _list_inhibitors_fallback()
-    return [r for r in rows if _keeps_awake(r.what)]
+    return [r for r in rows if r.mode == "block" and _keeps_awake(r.what)]
 
 
 # Row-type glyphs shown in the tray (docs/tray-ux.md).
@@ -179,41 +184,30 @@ GLYPH = {"agent": "◆", "own": "★", "other": "●"}
 AGENT_WHO = "sodamint-agent"  # the marker (docs/agent-integration.md); lockstep
 
 
-def _classify(inh, own_pid):
-    """Row type for an inhibitor: 'agent', 'own', or 'other' (docs/data-source.md)."""
-    if inh.who == AGENT_WHO:
-        return "agent"
-    if own_pid is not None and inh.pid == own_pid:
-        return "own"
-    return "other"
-
-
-def _row_label(inh, own=False):
+def _row_label(inh):
     """Human row text: the `why` (falling back to `who`) plus pid; no age (D19)."""
     base = inh.why.strip() if (inh.why and inh.why.strip()) else inh.who
-    marker = " (this)" if own else ""
-    return f"{base}{marker} · pid {inh.pid}"
+    return f"{base} · pid {inh.pid}"
 
 
 def _partition_inhibitors(inhibitors, own_pid):
-    """Split inhibitors for rendering: agent rows, our own row, and system rows.
+    """Split the (block-mode) inhibitors into agent rows and system rows,
+    excluding our own lock (``own_pid``). Our own row is rendered separately from
+    ``is_on()`` so it shows the instant the toggle flips — not a poll later —
+    which also stops a late poll from rebuilding the open menu (bug: the menu
+    would scrunch into scroll arrows instead of growing).
 
-    Pure — returns ``(agents, own, system)`` where ``agents`` / ``system`` are
-    ``[(glyph, text), ...]`` and ``own`` is a single ``(glyph, text)`` or None.
-    Our own lock is kept out of the system list so it can be shown as its own
-    distinct row; system rows are what the collapsible "System" section holds.
+    Pure — returns ``(agents, system)``, each ``[(glyph, text), ...]``.
     """
-    agents, system, own = [], [], None
+    agents, system = [], []
     for inh in inhibitors:
-        kind = _classify(inh, own_pid)
-        row = (GLYPH[kind], _row_label(inh, own=(kind == "own")))
-        if kind == "agent":
-            agents.append(row)
-        elif kind == "own":
-            own = row
+        if own_pid is not None and inh.pid == own_pid:
+            continue  # our own lock — rendered from is_on(), not the list
+        if inh.who == AGENT_WHO:
+            agents.append((GLYPH["agent"], _row_label(inh)))
         else:
-            system.append(row)
-    return agents, own, system
+            system.append((GLYPH["other"], _row_label(inh)))
+    return agents, system
 
 
 def _status_text(n):
@@ -412,13 +406,18 @@ class Sodamint:
     # ---- ui state -----------------------------------------------------------
     def _refresh(self):
         """Single repaint point: derive icon, status, and rows from the live
-        logind inhibitor list. The icon is active iff ANY source exists (D13);
-        the checkbox still reflects only our own lock."""
-        inhibitors = list_inhibitors()
+        logind inhibitor list plus our own lock. The icon is active iff at least
+        one block-mode idle/sleep source exists (D13)."""
         on = self.is_on()
         own_pid = self.proc.pid if on else None
-        agents, own, system = _partition_inhibitors(inhibitors, own_pid)
-        n = len(inhibitors)
+        agents, system = _partition_inhibitors(list_inhibitors(), own_pid)
+        # Render our own lock from is_on()/self.proc directly (not the logind
+        # list), so the ★ row appears the instant the toggle flips and a later
+        # poll finds identical content — no rebuild of the open menu.
+        own = None
+        if on:
+            own = (GLYPH["own"], f"{INHIBIT_WHY} (this) · pid {self.proc.pid}")
+        n = (1 if on else 0) + len(agents) + len(system)
         status = _status_text(n)
         icon = ICON_ACTIVE if n >= 1 else ICON_INACTIVE
 
