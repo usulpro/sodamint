@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="icons/sodamint-active.svg" alt="Sodamint" width="96" height="96">
-
-# Sodamint
+<img src="blog/sodamint-hero.png" alt="Sodamint" width="720">
 
 **Keep your Linux machine awake — and see exactly what's keeping it awake.**
 
@@ -45,7 +43,7 @@ inhibitor registry:
   it, out of the way when you don't.
 - 🚪 **Honest quit.** Quitting drops **only your own** lock; if agents or other
   processes are still working, the machine stays awake. The Quit item even says
-  *Disable and quit* when it's about to release your lock.
+  *Disable my keep-awake & quit* when it's about to release your lock.
 
 Everything is **read-only** for other processes: Sodamint never kills or drops a
 lock it doesn't own.

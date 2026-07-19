@@ -12,3 +12,5 @@ __pycache__/
 # build artifacts (rebuilt from packaging/)
 dist/
 *.deb
+.env
+.claude/skills/write-as-oleg/
